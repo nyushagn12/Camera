@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera</title>
+    <style>
+        body {
+            font-family: 'Georgia', Serif, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #000000;
+            color: #ffffff;
+        }
+
+        #video {
+            width: 100%;
+            max-height: 55vh;
+            background-color: #000;
+            object-fit: contain;
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .advanced-controls {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: 80px 100px 150px;
+            gap: 12px;
+            align-items: center;
+            background: #000000;
+            padding: 15px;
+            border-radius: 20px;
+            border: 1px solid #FFFFFF;
+            max-width: 90vw;
+        }
+
+        .advanced-controls label {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        button, select {
+            padding: 10px 18px;
+            font-size: 20px;
+            font-family: inherit;
+            background-color: #000000;
+            color: #ffffff;
+            border: 1px solid #FFFFFF;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        button:hover:not(:disabled), select:hover:not(:disabled) {
+            background-color: #000000;
+        }
+
+        button:disabled, select:disabled, input[type="range"]:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        #torch-btn.active {
+            background-color: #ffffff;
+            color: #000000;
+            font-weight: bold;
+        }
+
+        #camera-select {
+            display: none;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <video id="video" autoplay playsinline></video>
+    
+    <div class="controls">
+        <button id="list-cameras-btn">switch modes</button>
+        <select id="camera-select"></select>
+        <button id="torch-btn" disabled>torch is OFF</button>
+        <button id="capture-btn">capture</button>
+    </div>
+
+    <div class="advanced-controls" id="advanced-panel">
+        <label>focus</label>
+        <select id="focus-mode" disabled>
+            <option value="continuous">auto</option>
+            <option value="manual">manual</option>
+        </select>
+        <input type="range" id="focus-slider" disabled>
+
+        <label>exposure</label>
+        <select id="exposure-mode" disabled>
+            <option value="continuous">auto</option>
+            <option value="manual">manual</option>
+        </select>
+        <input type="range" id="exposure-slider" disabled>
+
+        <label>ISO</label>
+        <select id="iso-mode" disabled>
+            <option value="auto">auto</option>
+            <option value="manual">manual</option>
+        </select>
+        <input type="range" id="iso-slider" disabled>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const listCamerasBtn = document.getElementById('list-cameras-btn');
+        const cameraSelect = document.getElementById('camera-select');
+        const torchBtn = document.getElementById('torch-btn');
+        
+        const focusMode = document.getElementById('focus-mode');
+        const focusSlider = document.getElementById('focus-slider');
+        const exposureMode = document.getElementById('exposure-mode');
+        const exposureSlider = document.getElementById('exposure-slider');
+        const isoMode = document.getElementById('iso-mode');
+        const isoSlider = document.getElementById('iso-slider');
+
+        let currentStream = null;
+        let videoTrack = null;
+        let isTorchOn = false;
+
+        function stopMediaTracks(stream) {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        function startCamera(deviceId = null) {
+            stopMediaTracks(currentStream);
+
+            const constraints = {
+                video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" },
+                audio: false
+            };
+
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then((stream) => {
+                    currentStream = stream;
+                    video.srcObject = stream;
+                    videoTrack = stream.getVideoTracks()[0];
+                    
+                    setTimeout(() => setupAdvancedControls(videoTrack), 500);
+                })
+                .catch((err) => {
+                    console.error("Camera error", err);
+                    alert("Camera failed");
+                });
+        }
+
+        function setupAdvancedControls(track) {
+            const capabilities = typeof track.getCapabilities === 'function' ? track.getCapabilities() : {};
+            const settings = typeof track.getSettings === 'function' ? track.getSettings() : {};
+
+            if (capabilities.torch) {
+                torchBtn.disabled = false;
+            } else {
+                torchBtn.disabled = true;
+                isTorchOn = false;
+                updateTorchUI();
+            }
+
+            if (capabilities.focusMode && capabilities.focusMode.includes('manual') && capabilities.focusDistance) {
+                focusMode.disabled = false;
+                focusSlider.min = capabilities.focusDistance.min;
+                focusSlider.max = capabilities.focusDistance.max;
+                focusSlider.step = capabilities.focusDistance.step || 0.01;
+                focusSlider.value = settings.focusDistance || capabilities.focusDistance.min;
+            } else {
+                focusMode.disabled = true;
+                focusSlider.disabled = true;
+            }
+
+            if (capabilities.exposureMode && capabilities.exposureMode.includes('manual') && capabilities.exposureTime) {
+                exposureMode.disabled = false;
+                exposureSlider.min = capabilities.exposureTime.min;
+                exposureSlider.max = capabilities.exposureTime.max;
+                exposureSlider.step = capabilities.exposureTime.step || 1;
+                exposureSlider.value = settings.exposureTime || capabilities.exposureTime.min;
+            } else {
+                exposureMode.disabled = true;
+                exposureSlider.disabled = true;
+            }
+
+            if (capabilities.iso) {
+                isoMode.disabled = false;
+                isoSlider.min = capabilities.iso.min;
+                isoSlider.max = capabilities.iso.max;
+                isoSlider.step = capabilities.iso.step || 1;
+                isoSlider.value = settings.iso || capabilities.iso.min;
+            } else {
+                isoMode.disabled = true;
+                isoSlider.disabled = true;
+            }
+        }
+
+        async function applyCameraSettings() {
+            if (!videoTrack) return;
+
+            const advancedSettings = {};
+
+            if (!torchBtn.disabled) advancedSettings.torch = isTorchOn;
+
+            if (!focusMode.disabled) {
+                advancedSettings.focusMode = focusMode.value;
+                if (focusMode.value === 'manual') advancedSettings.focusDistance = parseFloat(focusSlider.value);
+            }
+
+            if (!exposureMode.disabled) {
+                advancedSettings.exposureMode = exposureMode.value;
+                if (exposureMode.value === 'manual') advancedSettings.exposureTime = parseFloat(exposureSlider.value);
+            }
+
+            if (!isoMode.disabled && isoMode.value === 'manual') {
+                advancedSettings.iso = parseFloat(isoSlider.value);
+            }
+
+            if (Object.keys(advancedSettings).length > 0 && typeof videoTrack.applyConstraints === 'function') {
+                try {
+                    await videoTrack.applyConstraints({ advanced: [advancedSettings] });
+                } catch (err) {
+                    console.warn("Error (Normal for Safari)", err);
+                }
+            }
+        }
+
+        function updateTorchUI() {
+            torchBtn.innerText = `Torch: ${isTorchOn ? 'ON' : 'OFF'}`;
+            if (isTorchOn) {
+                torchBtn.classList.add('active');
+            } else {
+                torchBtn.classList.remove('active');
+            }
+        }
+
+        torchBtn.addEventListener('click', () => {
+            isTorchOn = !isTorchOn;
+            updateTorchUI();
+            applyCameraSettings();
+        });
+
+        [focusMode, exposureMode, isoMode].forEach(el => {
+            el.addEventListener('change', (e) => {
+                const slider = e.target.nextElementSibling;
+                slider.disabled = (e.target.value !== 'manual');
+                applyCameraSettings();
+            });
+        });
+
+        [focusSlider, exposureSlider, isoSlider].forEach(el => {
+            el.addEventListener('input', applyCameraSettings);
+        });
+
+        startCamera();
+
+        listCamerasBtn.addEventListener('click', async () => {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                cameraSelect.innerHTML = '';
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Camera ${index + 1}`;
+                    cameraSelect.appendChild(option);
+                });
+
+                cameraSelect.style.display = 'block';
+                listCamerasBtn.style.display = 'none';
+            } catch (err) {
+                console.error("Camera error", err);
+                alert("Cameras failed to get listed");
+            }
+        });
+
+        cameraSelect.addEventListener('change', (event) => {
+            startCamera(event.target.value);
+            
+            isTorchOn = false;
+            updateTorchUI();
+            [focusMode, exposureMode, isoMode].forEach(el => el.value = el.options[0].value);
+            [focusSlider, exposureSlider, isoSlider].forEach(el => el.disabled = true);
+        });
+
+        captureBtn.addEventListener('click', () => {
+            if (!currentStream) return;
+
+            const track = currentStream.getVideoTracks()[0];
+            const capabilities = track.getCapabilities ? track.getCapabilities() : null;
+            
+            if (capabilities && capabilities.width && capabilities.height) {
+        
+                canvas.width = capabilities.width.max;
+                canvas.height = capabilities.height.max;
+            } else {
+       
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+            }
+            
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const data = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = data;
+            link.download = 'captured-photo.png';
+            link.click();
+        });
+    </script>
+</body>
+</html>
