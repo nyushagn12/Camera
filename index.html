@@ -156,6 +156,8 @@
             stopMediaTracks(currentStream);
 
             const constraints = {
+                width: { ideal: 9999 },
+                height: { ideal: 9999 },
                 video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" },
                 audio: false
             };
