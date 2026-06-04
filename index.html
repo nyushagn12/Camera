@@ -317,8 +317,8 @@
             
             if (capabilities && capabilities.width && capabilities.height) {
         
-                canvas.width = capabilities.width.max;
-                canvas.height = capabilities.height.max;
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
             } else {
        
                 canvas.width = video.videoWidth;
