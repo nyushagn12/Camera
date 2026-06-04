@@ -168,8 +168,8 @@
             } catch (err) {
                 try {
                     await track.applyConstraints({
-                        width: { ideal: maxWidth },
-                        height: { ideal: maxHeight }
+                        width: { ideal: 4096 },
+                        height: { ideal: 2160 }
                     });
                 } catch (e) {}
             }
