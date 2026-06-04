@@ -309,48 +309,58 @@
             [focusSlider, exposureSlider, isoSlider].forEach(el => el.disabled = true);
         });
 
-        captureBtn.addEventListener('click', async () => {
-            if (!currentStream) return;
-
-            const track = currentStream.getVideoTracks()[0];
-
-            if (typeof ImageCapture !== 'undefined' && track) {
-                try {
-                    const imageCapture = new ImageCapture(track);
-                    const capabilities = await imageCapture.getPhotoCapabilities();
-                    const maxWidth = capabilities.imageWidth.max;
-                    const maxHeight = capabilities.imageHeight.max;
-
-                    const blob = await imageCapture.takePhoto()
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = 'captured-photo.png'
-                    link.click();
-                    URL.revokeObjectURL(url);
-                    return;
-                } catch (err) {
-                    console.warn('Fail');
-                }
-            }
-            const capabilities = track.getCapabilities ? track.getCapabilities() : null;
-            
-            if (capabilities && capabilities.width && capabilities.height) {
-                canvas.width = capabilities.width.max;
-                canvas.height = capabilities.height.max;
-            } else {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-            }
-            
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const data = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.href = data;
-            link.download = 'captured-photo-fail.png';
-            link.click();
-        });
+	captureBtn.addEventListener('click', async () => {
+		    if (!currentStream) return;
+		
+		    const track = currentStream.getVideoTracks()[0];
+		
+		    if (typeof ImageCapture !== 'undefined') {
+		        try {
+		            const imageCapture = new ImageCapture(track);
+		            
+		            const photoCapabilities = await imageCapture.getPhotoCapabilities();
+		            
+		            const maxWidth = photoCapabilities.imageWidth.max;
+		            const maxHeight = photoCapabilities.imageHeight.max;
+		            
+		            const photoSettings = {
+		                imageWidth: maxWidth,
+		                imageHeight: maxHeight
+		            };
+		
+		            const blob = await imageCapture.takePhoto(photoSettings);
+		            
+		            const url = URL.createObjectURL(blob);
+		            const link = document.createElement('a');
+		            link.href = url;
+		            link.download = 'high-res-photo.jpg';
+		            link.click();
+		            URL.revokeObjectURL(url);
+		            return;
+		            
+		        } catch (err) {
+		            console.warn("ImageCapture API failed, falling back to canvas method.", err);
+		        }
+		    }
+		    
+		    const capabilities = track.getCapabilities ? track.getCapabilities() : null;
+		    
+		    if (capabilities && capabilities.width && capabilities.height) {
+		        canvas.width = capabilities.width.max;
+		        canvas.height = capabilities.height.max;
+		    } else {
+		        canvas.width = video.videoWidth;
+		        canvas.height = video.videoHeight;
+		    }
+		    
+		    const context = canvas.getContext('2d');
+		    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+		    const data = canvas.toDataURL('image/png');
+		    const link = document.createElement('a');
+		    link.href = data;
+		    link.download = 'captured-photo-fallback.png';
+		    link.click();
+		});
     </script>
 </body>
 </html>
