@@ -404,15 +404,19 @@ function showFocusEnabled(){
   const tag=$('focus-disabled-tag');if(tag)tag.style.display='none';
 }
 function showRowEnabled(sel){
-  sel.style.display='';sel.nextElementSibling&&sel.nextElementSibling.style&&(sel.parentElement.querySelector('.disabled-tag')||{}).style&&(sel.parentElement.querySelector('.disabled-tag')||{style:{}}).style.display='none';
+  sel.style.display='';
+  const tag=sel.nextElementSibling&&sel.nextElementSibling.style&&(sel.parentElement.querySelector('.disabled-tag')||{}).style&&(sel.parentElement.querySelector('.disabled-tag')||{style:{}}).style.display='none';
   const tag=sel.parentElement.querySelector('.disabled-tag');if(tag)tag.style.display='none';
   sel.nextElementSibling.style.display='';
 }
 function showRowSim(sel){
   sel.style.display='none';
-  const tag=sel.parentElement.querySelector('.disabled-tag');if(tag)tag.style.display='none';
-  sel.nextElementSibling.style.display='';
-  sel.nextElementSibling.disabled=false;
+  const tag= sel.parentElement.querySelector('.disabled-tag');
+  if(tag)tag.style.display='none';
+  if(sel.nextElementSIbling){
+    sel.nextElementSibling.style.display='';
+    sel.nextElementSibling.disabled=false;
+  }
 }
 
 function recalcSoftwareBrightness(){
