@@ -18,8 +18,7 @@ button:disabled,select:disabled,input[type="range"]:disabled{opacity:.3;cursor:n
 button.active{background:#fff;color:#000;font-weight:bold}
 #camera-select{display:none}
 input[type="range"]{width:100%;cursor:pointer;accent-color:#fff}
-#canvas{display:none}
-#rec-canvas{position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+#canvas,#rec-canvas{display:none}
 #mode-toggle{display:flex;gap:0;background:#1a1a1a;border-radius:14px;overflow:hidden}
 #mode-toggle button{border:none;border-radius:0;padding:9px 20px}
 #mode-toggle button.active{background:#fff;color:#000}
@@ -447,47 +446,17 @@ function drawRecFrame(rctx,vw,vh,ow,oh){
   var sx=Math.max(0,Math.min(vw-ow,mx-gyroSmooth.x));
   var sy=Math.max(0,Math.min(vh-oh,my-gyroSmooth.y));
   rctx.drawImage(video,sx,sy,ow,oh,0,0,ow,oh);
-}
 function startRecording(){
-  if(!video.videoWidth||!video.videoHeight)return;
-  var vw=video.videoWidth,vh=video.videoHeight;
-  var ow=Math.round(vw*CROP),oh=Math.round(vh*CROP);
-  recCanvas.width=ow;recCanvas.height=oh;
-  var rctx=recCanvas.getContext('2d');
-
-  // draw first frame immediately so the stream has content
-  drawRecFrame(rctx,vw,vh,ow,oh);
-
-  // gyro
-  gyroBaseline=null;gyroTarget={x:0,y:0};gyroSmooth={x:0,y:0};
-  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-    DeviceOrientationEvent.requestPermission().then(function(s){
-      if(s==='granted')window.addEventListener('deviceorientation',onGyro);
-    }).catch(function(){});
-  }else if(window.DeviceOrientationEvent){
-    window.addEventListener('deviceorientation',onGyro);
-  }
-
-  // consistent frame drawing via setInterval (more reliable than rAF for recording)
-  var fps=30;
-  recInterval=setInterval(function(){
-    if(video.videoWidth)drawRecFrame(rctx,vw,vh,ow,oh);
-  },1000/fps);
-
-  var stream=recCanvas.captureStream();
-  if(currentStream)currentStream.getAudioTracks().forEach(function(t){stream.addTrack(t)});
-
+  if(!currentStream)return;
+  recordedChunks=[];
   var mime=getBestMime();
   try{
-    mediaRecorder=new MediaRecorder(stream,mime?{mimeType:mime,videoBitsPerSecond:12000000}:{videoBitsPerSecond:12000000});
+    mediaRecorder=new MediaRecorder(currentStream,mime?{mimeType:mime,videoBitsPerSecond:12000000}:{videoBitsPerSecond:12000000});
   }catch(e){
-    try{mediaRecorder=new MediaRecorder(stream)}catch(e2){alert('Recording not supported');clearInterval(recInterval);return}
+    try{mediaRecorder=new MediaRecorder(currentStream)}catch(e2){alert('Recording not supported');return}
   }
-  recordedChunks=[];
   mediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size>0)recordedChunks.push(e.data)};
   mediaRecorder.onstop=function(){
-    clearInterval(recInterval);recInterval=null;
-    window.removeEventListener('deviceorientation',onGyro);
     if(!recordedChunks.length){alert('No data recorded');return}
     var mimeFinal=mediaRecorder.mimeType||'video/mp4';
     var blob=new Blob(recordedChunks,{type:mimeFinal});
@@ -497,28 +466,20 @@ function startRecording(){
     modalType='video';
     modalVideo.src=modalBlobUrl;modalVideo.style.display='block';
     modalImage.style.display='none';
-    modalHint.textContent='tap ↓ save to download';
+    modalHint.textContent='tap \u2193 save to download';
     icAI.style.display='none';icPresets.style.display='none';
     modalOverlay.classList.add('open');
     closeSheet();
   };
-  mediaRecorder.start(1000); // collect data every 1s
+  mediaRecorder.start(1000);
   isRecording=true;
-  captureBtn.classList.add('recording');captureBtn.textContent='■ stop';
+  captureBtn.classList.add('recording');captureBtn.textContent='\u25a0 stop';
   recStartTime=Date.now();recTimer.style.display='block';
   recTimerInt=setInterval(function(){
     var s=Math.floor((Date.now()-recStartTime)/1000);
     recTimer.textContent=('0'+Math.floor(s/60)).slice(-2)+':'+('0'+(s%60)).slice(-2);
   },250);
 }
-function stopRecording(){
-  if(!mediaRecorder||mediaRecorder.state==='inactive')return;
-  isRecording=false;
-  mediaRecorder.stop();
-  clearInterval(recTimerInt);recTimer.style.display='none';
-  captureBtn.classList.remove('recording');captureBtn.textContent='● record';
-}
-
 /* ===== MODAL ===== */
 function openModalPhoto(blob){
   if(modalBlobUrl)URL.revokeObjectURL(modalBlobUrl);
