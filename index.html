@@ -18,7 +18,8 @@ button:disabled,select:disabled,input[type="range"]:disabled{opacity:.3;cursor:n
 button.active{background:#fff;color:#000;font-weight:bold}
 #camera-select{display:none}
 input[type="range"]{width:100%;cursor:pointer;accent-color:#fff}
-#canvas,#rec-canvas{display:none}
+#canvas{display:none}
+#rec-canvas{position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
 #mode-toggle{display:flex;gap:0;background:#1a1a1a;border-radius:14px;overflow:hidden}
 #mode-toggle button{border:none;border-radius:0;padding:9px 20px}
 #mode-toggle button.active{background:#fff;color:#000}
@@ -445,10 +446,7 @@ function drawRecFrame(rctx,vw,vh,ow,oh){
   var mx=(vw-ow)/2,my=(vh-oh)/2;
   var sx=Math.max(0,Math.min(vw-ow,mx-gyroSmooth.x));
   var sy=Math.max(0,Math.min(vh-oh,my-gyroSmooth.y));
-  if(softwareBrightness!==1)rctx.filter='brightness('+softwareBrightness+')';
-  else rctx.filter='none';
   rctx.drawImage(video,sx,sy,ow,oh,0,0,ow,oh);
-  rctx.filter='none';
 }
 function startRecording(){
   if(!video.videoWidth||!video.videoHeight)return;
@@ -476,7 +474,7 @@ function startRecording(){
     if(video.videoWidth)drawRecFrame(rctx,vw,vh,ow,oh);
   },1000/fps);
 
-  var stream=recCanvas.captureStream(fps);
+  var stream=recCanvas.captureStream();
   if(currentStream)currentStream.getAudioTracks().forEach(function(t){stream.addTrack(t)});
 
   var mime=getBestMime();
