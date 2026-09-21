@@ -2,126 +2,105 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Camera</title>
 <style>
-  body {
-    font-family: 'Georgia', Serif, sans-serif;
-    display: flex; flex-direction: column; align-items: center;
-    min-height: 100vh; margin: 0; padding: 10px;
-    background: #000; color: #fff;
-  }
-  #video { width: 100%; max-height: 55vh; background: #000; object-fit: contain; }
-  .controls, .post-controls {
-    margin-top: 15px; display: flex; flex-wrap: wrap;
-    justify-content: center; gap: 10px;
-  }
-  .advanced-controls {
-    margin-top: 15px;
-    display: grid; grid-template-columns: 80px 100px 150px;
-    gap: 12px; align-items: center;
-    background: #000; padding: 15px; border-radius: 20px;
-    border: 1px solid #fff; max-width: 90vw;
-  }
-  .advanced-controls label { font-size: 20px; font-weight: bold; }
-  button, select, input[type="text"], textarea {
-    padding: 10px 18px; font-size: 18px; font-family: inherit;
-    background: #000; color: #fff; border: 1px solid #fff;
-    border-radius: 20px; cursor: pointer; transition: all .2s;
-  }
-  button:hover:not(:disabled), select:hover:not(:disabled) { background: #111; }
-  button:disabled, select:disabled, input[type="range"]:disabled { opacity: .3; cursor: not-allowed; }
-  button.active { background: #fff; color: #000; font-weight: bold; }
-  #camera-select { display: none; }
-  #canvas { display: none; }
-  input[type="range"] { width: 100%; cursor: pointer; accent-color: #fff; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Georgia',Serif,serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;margin:0;padding:10px;background:#000;color:#fff}
+#video{width:100%;max-height:50vh;background:#000;object-fit:contain}
+.controls{margin-top:12px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.advanced-controls{margin-top:12px;display:grid;grid-template-columns:76px 92px 1fr;gap:10px;align-items:center;background:#000;padding:14px;border-radius:20px;border:1px solid #fff;max-width:92vw;width:100%}
+.advanced-controls label{font-size:17px;font-weight:bold}
+.advanced-controls .disabled-tag{font-size:14px;opacity:.45;font-style:italic;grid-column:2/4}
+button,select,input[type="text"],input[type="password"],textarea{padding:9px 16px;font-size:17px;font-family:inherit;background:#000;color:#fff;border:1px solid #fff;border-radius:20px;cursor:pointer;transition:background .2s}
+button:disabled,select:disabled,input[type="range"]:disabled{opacity:.3;cursor:not-allowed}
+button.active{background:#fff;color:#000;font-weight:bold}
+#camera-select{display:none}
+input[type="range"]{width:100%;cursor:pointer;accent-color:#fff}
+#canvas,#rec-canvas{display:none}
 
-  /* Preview */
-  #preview-section { width: 100%; max-width: 90vw; margin-top: 20px; display: none; }
-  #preview-image {
-    width: 70vw; max-width: 70vw; height: auto;
-    border: 1px solid #fff; border-radius: 10px;
-    display: block; margin: 0 auto;
-    touch-action: manipulation;
-  }
-  .preview-hint {
-    text-align: center; font-size: 14px; opacity: .6;
-    margin-top: 6px; font-style: italic;
-  }
+/* mode toggle */
+#mode-toggle{display:flex;gap:0;border:1px solid #fff;border-radius:20px;overflow:hidden}
+#mode-toggle button{border:none;border-radius:0;padding:9px 20px}
+#mode-toggle button.active{background:#fff;color:#000}
 
-  /* Presets panel */
-  #presets-panel {
-    margin-top: 15px; padding: 15px;
-    background: #000; border: 1px solid #fff;
-    border-radius: 20px; width: 100%; max-width: 90vw;
-    display: none;
-  }
-  #presets-panel h3 { margin: 0 0 12px 0; font-size: 18px; }
-  .preset-row {
-    display: grid; grid-template-columns: 130px 1fr 50px;
-    align-items: center; gap: 10px; margin-bottom: 8px;
-  }
-  .preset-row label { font-size: 14px; }
-  .preset-row span { font-size: 13px; opacity: .7; text-align: right; }
-  .preset-section-title {
-    font-size: 13px; opacity: .6; margin: 14px 0 4px 0;
-    border-top: 1px solid #333; padding-top: 10px;
-  }
+/* record btn */
+#capture-btn.recording{background:#c00;border-color:#f44;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+#rec-timer{font-size:22px;font-weight:bold;color:#f55;display:none;margin-top:8px;font-variant-numeric:tabular-nums}
 
-  /* AI panel */
-  #ai-panel {
-    margin-top: 15px; padding: 15px;
-    background: #000; border: 1px solid #fff;
-    border-radius: 20px; width: 100%; max-width: 90vw;
-    display: none;
-  }
-  #ai-prompt {
-    width: 100%; min-height: 60px; resize: vertical;
-    font-family: inherit; font-size: 16px;
-  }
-  #ai-status { font-size: 14px; opacity: .7; margin-top: 8px; font-style: italic; }
+/* video options */
+#video-opts-row{display:none;margin-top:10px;justify-content:center}
 
-  /* Gallery */
-  #gallery-section { width: 100%; max-width: 90vw; margin-top: 30px; }
-  #gallery-section h3 { margin: 0 0 10px 0; display: flex; justify-content: space-between; align-items: center; }
-  #gallery-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 8px;
-  }
-  .gallery-thumb {
-    width: 100%; aspect-ratio: 1; object-fit: cover;
-    border: 1px solid #fff; border-radius: 8px; cursor: pointer;
-  }
-  .gallery-empty { opacity: .5; font-style: italic; font-size: 14px; }
+/* ===== MODAL ===== */
+#modal-overlay{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.55);backdrop-filter:blur(28px) saturate(.35) brightness(.45);-webkit-backdrop-filter:blur(28px) saturate(.35) brightness(.45)}
+#modal-overlay.open{display:flex}
+#modal-frame{position:relative;line-height:0}
+#modal-image,#modal-video{max-width:78vw;max-height:62vh;border-radius:10px;border:2px solid rgba(255,255,255,.85);display:block;background:#000;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;touch-action:manipulation}
+#modal-image{width:70vw}
+.modal-hint{text-align:center;font-size:13px;opacity:.55;margin-top:8px;font-style:italic;line-height:1.4}
+.m-icon{position:absolute;width:46px;height:46px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.75);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:5;padding:0;transition:transform .15s}
+.m-icon:active{transform:scale(.88)}
+.m-icon svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#ic-ai{top:10px;left:10px}#ic-presets{top:10px;right:10px}#ic-save{bottom:10px;left:10px}#ic-exit{bottom:10px;right:10px}
+#ic-save.done{background:#fff}#ic-save.done svg{stroke:#000}
 
-  /* Settings */
-  #settings-btn { position: fixed; top: 10px; right: 10px; padding: 6px 12px; font-size: 14px; z-index: 10; }
-  #settings-panel {
-    position: fixed; top: 50px; right: 10px;
-    background: #000; border: 1px solid #fff; border-radius: 15px;
-    padding: 15px; width: 280px; display: none; z-index: 10;
-  }
-  #settings-panel label { display: block; font-size: 13px; margin-bottom: 4px; opacity: .8; }
-  #settings-panel input { width: 100%; margin-bottom: 10px; }
+/* bottom sheet */
+#sheet{position:fixed;bottom:0;left:0;right:0;background:rgba(8,8,8,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.25);border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:58vh;overflow-y:auto;transform:translateY(105%);transition:transform .3s cubic-bezier(.32,.72,0,1);z-index:120;-webkit-overflow-scrolling:touch}
+#sheet.open{transform:translateY(0)}
+#sheet h3{margin:0 0 12px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+#sheet .close-sheet{font-size:13px;opacity:.6;background:none;border:none;padding:4px 8px}
+.preset-row{display:grid;grid-template-columns:118px 1fr 44px;align-items:center;gap:8px;margin-bottom:7px}
+.preset-row label{font-size:13px}
+.preset-row span{font-size:12px;opacity:.65;text-align:right;font-variant-numeric:tabular-nums}
+.sec-title{font-size:12px;opacity:.5;margin:13px 0 5px;border-top:1px solid #2a2a2a;padding-top:9px;text-transform:uppercase;letter-spacing:1px}
+#ai-prompt{width:100%;min-height:56px;resize:vertical;font-family:inherit;font-size:15px;border-radius:14px}
+#ai-status{font-size:13px;opacity:.65;margin-top:8px;font-style:italic;min-height:18px}
+.sheet-btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.sheet-btns button{flex:1;min-width:110px}
+#preset-select{flex:1;font-size:15px}
+.preset-bar{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+.preset-bar button{padding:8px 12px;font-size:13px}
 
-  .hidden { display: none !important; }
+/* gallery */
+#gallery-section{width:100%;max-width:92vw;margin-top:28px}
+#gallery-section h3{margin:0 0 10px;font-size:17px}
+#gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:7px}
+.g-thumb{width:100%;aspect-ratio:1;object-fit:cover;border:1px solid #fff;border-radius:8px;cursor:pointer}
+.g-thumb-vid{position:relative}
+.g-thumb-vid::after{content:'▶';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;text-shadow:0 1px 4px #000;pointer-events:none}
+.g-empty{opacity:.45;font-style:italic;font-size:13px}
+.g-del{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.7);border:1px solid #fff;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.g-cell{position:relative}
+
+/* settings */
+#settings-btn{position:fixed;top:10px;right:10px;padding:6px 12px;font-size:14px;z-index:200}
+#settings-panel{position:fixed;top:52px;right:10px;background:#000;border:1px solid #fff;border-radius:15px;padding:14px;width:272px;display:none;z-index:200}
+#settings-panel label{display:block;font-size:12px;margin-bottom:3px;opacity:.75}
+#settings-panel input,#settings-panel select{width:100%;margin-bottom:9px;font-size:14px}
 </style>
 </head>
 <body>
 
 <button id="settings-btn">⚙</button>
 <div id="settings-panel">
-  <label>OpenAI API key (for AI modify)</label>
-  <input type="password" id="api-key-input" placeholder="sk-...">
+  <label>OpenAI API key</label>
+  <input type="password" id="api-key-input" placeholder="sk-..." autocomplete="off">
   <label>AI model</label>
-  <select id="ai-model-select">
-    <option value="gpt-image-1">gpt-image-1</option>
-  </select>
-  <button id="save-settings-btn" style="margin-top:10px; width:100%;">save</button>
-  <button id="clear-gallery-btn" style="margin-top:8px; width:100%;">clear gallery</button>
+  <select id="ai-model-select"><option value="gpt-image-1">gpt-image-1</option></select>
+  <button id="save-settings-btn" style="width:100%">save</button>
+  <button id="clear-gallery-btn" style="width:100%;margin-top:7px">clear gallery</button>
 </div>
 
-<video id="video" autoplay playsinline></video>
+<video id="video" autoplay playsinline muted></video>
+<div id="rec-timer">00:00</div>
+
+<div class="controls">
+  <div id="mode-toggle">
+    <button id="mode-photo" class="active">photo</button>
+    <button id="mode-video">video</button>
+  </div>
+</div>
 
 <div class="controls">
   <button id="list-cameras-btn">switch modes</button>
@@ -130,666 +109,811 @@
   <button id="capture-btn">capture</button>
 </div>
 
+<div id="video-opts-row" class="controls">
+  <select id="video-opts"></select>
+</div>
+
 <div class="advanced-controls" id="advanced-panel">
   <label>focus</label>
-  <select id="focus-mode" disabled>
-    <option value="continuous">auto</option>
-    <option value="manual">manual</option>
-  </select>
+  <select id="focus-mode" disabled><option value="continuous">auto</option><option value="manual">manual</option></select>
   <input type="range" id="focus-slider" disabled>
 
   <label>exposure</label>
-  <select id="exposure-mode" disabled>
-    <option value="continuous">auto</option>
-    <option value="manual">manual</option>
-  </select>
+  <select id="exposure-mode" disabled><option value="continuous">auto</option><option value="manual">manual</option></select>
   <input type="range" id="exposure-slider" disabled>
 
+  <label>shutter</label>
+  <select id="shutter-mode" disabled><option value="auto">auto</option><option value="manual">manual</option></select>
+  <input type="range" id="shutter-slider" disabled>
+
   <label>ISO</label>
-  <select id="iso-mode" disabled>
-    <option value="auto">auto</option>
-    <option value="manual">manual</option>
-  </select>
+  <select id="iso-mode" disabled><option value="auto">auto</option><option value="manual">manual</option></select>
   <input type="range" id="iso-slider" disabled>
 </div>
 
 <canvas id="canvas"></canvas>
+<canvas id="rec-canvas"></canvas>
 
-<!-- PREVIEW -->
-<section id="preview-section">
-  <img id="preview-image" alt="preview">
-  <div class="preview-hint">hold to save • pinch to zoom</div>
-
-  <div class="post-controls">
-    <button id="ai-toggle-btn">modify with AI</button>
-    <button id="presets-toggle-btn">presets</button>
-    <button id="save-gallery-btn">save to gallery</button>
-    <button id="retake-btn">retake</button>
+<!-- ===== MODAL ===== -->
+<div id="modal-overlay">
+  <div id="modal-frame">
+    <img id="modal-image" alt="" style="display:none">
+    <video id="modal-video" playsinline controls style="display:none"></video>
+    <button class="m-icon" id="ic-ai" title="Modify with AI"><svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg></button>
+    <button class="m-icon" id="ic-presets" title="Presets"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 12h4M12 12h8M4 17h12M20 17h0"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="17" r="2"/></svg></button>
+    <button class="m-icon" id="ic-save" title="Save"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg></button>
+    <button class="m-icon" id="ic-exit" title="Exit"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
+  <div class="modal-hint" id="modal-hint">hold the photo → "Add to Photos"</div>
+</div>
 
-  <div id="ai-panel">
-    <textarea id="ai-prompt" placeholder="what do we change? e.g. 'remove people', 'give me better lighting', 'make it cinematic'"></textarea>
-    <div class="post-controls" style="margin-top:10px;">
-      <button id="ai-submit-btn">send to AI</button>
-    </div>
+<!-- ===== BOTTOM SHEET ===== -->
+<div id="sheet">
+  <!-- AI pane -->
+  <div id="pane-ai" style="display:none">
+    <h3>modify with AI <button class="close-sheet" data-close>✕ close</button></h3>
+    <textarea id="ai-prompt" placeholder="what do we change? e.g. remove people, better lighting, golden hour, film look…"></textarea>
+    <div class="sheet-btns"><button id="ai-submit-btn">send to AI</button></div>
     <div id="ai-status"></div>
   </div>
-
-  <div id="presets-panel">
-    <h3>photographic presets</h3>
-    <div class="preset-section-title">tone & color</div>
-    <!-- rows injected by JS for live value readout -->
+  <!-- Presets pane -->
+  <div id="pane-presets" style="display:none">
+    <h3>photographic presets <button class="close-sheet" data-close>✕ close</button></h3>
+    <div class="preset-bar">
+      <select id="preset-select"></select>
+      <button id="preset-save-btn">＋ save</button>
+      <button id="preset-del-btn">🗑</button>
+    </div>
     <div id="preset-rows"></div>
-    <div class="post-controls" style="margin-top:12px;">
-      <button id="apply-presets-btn">apply to preview</button>
-      <button id="reset-presets-btn">reset</button>
+    <div class="sheet-btns">
+      <button id="apply-presets-btn">apply</button>
+      <button id="reset-presets-btn">revert</button>
     </div>
   </div>
-</section>
+</div>
 
-<!-- GALLERY -->
+<!-- ===== GALLERY ===== -->
 <section id="gallery-section">
-  <h3>gallery <span id="gallery-count" class="gallery-empty"></span></h3>
+  <h3>gallery <span id="gallery-count" class="g-empty"></span></h3>
   <div id="gallery-grid"></div>
 </section>
 
 <script>
-/* ---------- ELEMENTS ---------- */
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const captureBtn = document.getElementById('capture-btn');
-const listCamerasBtn = document.getElementById('list-cameras-btn');
-const cameraSelect = document.getElementById('camera-select');
-const torchBtn = document.getElementById('torch-btn');
+/* ================= STATE ================= */
+const $=id=>document.getElementById(id);
+const video=$('video'),canvas=$('canvas'),recCanvas=$('rec-canvas');
+const captureBtn=$('capture-btn'),listCamerasBtn=$('list-cameras-btn'),cameraSelect=$('camera-select'),torchBtn=$('torch-btn');
+const focusMode=$('focus-mode'),focusSlider=$('focus-slider');
+const exposureMode=$('exposure-mode'),exposureSlider=$('exposure-slider');
+const shutterMode=$('shutter-mode'),shutterSlider=$('shutter-slider');
+const isoMode=$('iso-mode'),isoSlider=$('iso-slider');
+const advPanel=$('advanced-panel');
+const modePhoto=$('mode-photo'),modeVideo=$('mode-video'),videoOptsRow=$('video-opts-row'),videoOpts=$('video-opts');
+const recTimer=$('rec-timer');
+const modalOverlay=$('modal-overlay'),modalFrame=$('modal-frame'),modalImage=$('modal-image'),modalVideo=$('modal-video'),modalHint=$('modal-hint');
+const icAI=$('ic-ai'),icPresets=$('ic-presets'),icSave=$('ic-save'),icExit=$('ic-exit');
+const sheet=$('sheet'),paneAI=$('pane-ai'),panePresets=$('pane-presets');
+const aiPrompt=$('ai-prompt'),aiSubmitBtn=$('ai-submit-btn'),aiStatus=$('ai-status');
+const presetSelect=$('preset-select'),presetSaveBtn=$('preset-save-btn'),presetDelBtn=$('preset-del-btn'),presetRows=$('preset-rows');
+const applyPresetsBtn=$('apply-presets-btn'),resetPresetsBtn=$('reset-presets-btn');
+const settingsBtn=$('settings-btn'),settingsPanel=$('settings-panel'),apiKeyInput=$('api-key-input'),aiModelSelect=$('ai-model-select'),saveSettingsBtn=$('save-settings-btn'),clearGalleryBtn=$('clear-gallery-btn');
+const galleryGrid=$('gallery-grid'),galleryCount=$('gallery-count');
 
-const focusMode = document.getElementById('focus-mode');
-const focusSlider = document.getElementById('focus-slider');
-const exposureMode = document.getElementById('exposure-mode');
-const exposureSlider = document.getElementById('exposure-slider');
-const isoMode = document.getElementById('iso-mode');
-const isoSlider = document.getElementById('iso-slider');
+let currentStream=null,videoTrack=null,isTorchOn=false;
+let mode='photo'; // 'photo'|'video'
+let mediaRecorder=null,recordedChunks=[],recStartTime=0,recTimerInt=null,isRecording=false;
+let modalBlobUrl=null,modalType='photo',modalBlob=null;
+let baseImageData=null,originalBlobUrl=null;
 
-const previewSection = document.getElementById('preview-section');
-const previewImage = document.getElementById('preview-image');
-const aiToggleBtn = document.getElementById('ai-toggle-btn');
-const presetsToggleBtn = document.getElementById('presets-toggle-btn');
-const saveGalleryBtn = document.getElementById('save-gallery-btn');
-const retakeBtn = document.getElementById('retake-btn');
-const aiPanel = document.getElementById('ai-panel');
-const presetsPanel = document.getElementById('presets-panel');
-const aiPrompt = document.getElementById('ai-prompt');
-const aiSubmitBtn = document.getElementById('ai-submit-btn');
-const aiStatus = document.getElementById('ai-status');
-const applyPresetsBtn = document.getElementById('apply-presets-btn');
-const resetPresetsBtn = document.getElementById('reset-presets-btn');
-const presetRows = document.getElementById('preset-rows');
+/* hardware capability flags */
+let hw={focus:false,exposure:false,shutter:false,iso:false,ois:false};
+let softwareBrightness=1;
+let simISO=160,simExposure=0,simShutter=0;
 
-const settingsBtn = document.getElementById('settings-btn');
-const settingsPanel = document.getElementById('settings-panel');
-const apiKeyInput = document.getElementById('api-key-input');
-const aiModelSelect = document.getElementById('ai-model-select');
-const saveSettingsBtn = document.getElementById('save-settings-btn');
-const clearGalleryBtn = document.getElementById('clear-gallery-btn');
-const galleryGrid = document.getElementById('gallery-grid');
-const galleryCount = document.getElementById('gallery-count');
+/* gyro stabilization */
+let gyroBaseline=null,gyroTarget={x:0,y:0},gyroSmooth={x:0,y:0},gyroEnabled=false;
+const CROP=0.92; // 8% total crop margin — "a tiny bit"
 
-let currentStream = null;
-let videoTrack = null;
-let isTorchOn = false;
-let currentPreviewDataUrl = null;   // base64 png currently in preview
-let originalPreviewDataUrl = null; // snapshot before presets so we can reset
-let baseImageData = null;          // ImageData from the captured frame (for presets)
+/* ================= INDEXEDDB ================= */
+const DB_NAME='camera_gallery_v2',STORE='media';
+let db=null;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id',autoIncrement:true})};r.onsuccess=e=>{db=e.target.result;res(db)};r.onerror=e=>rej(e.target.error)})}
+function dbAdd(rec){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).add(rec);tx.oncomplete=()=>res();tx.onerror=e=>rej(e.target.error)})}
+function dbAll(){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly');const r=tx.objectStore(STORE).getAll();r.onsuccess=()=>res(r.result);r.onerror=e=>rej(e.target.error)})}
+function dbDel(id){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(id);tx.oncomplete=()=>res();tx.onerror=e=>rej(e.target.error)})}
+function dbClear(){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).clear();tx.oncomplete=()=>res();tx.onerror=e=>rej(e.target.error)})}
 
-/* ---------- INDEXEDDB GALLERY ---------- */
-const DB_NAME = 'camera_gallery';
-const STORE = 'photos';
-let db = null;
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = e => {
-      const d = e.target.result;
-      if (!d.objectStoreNames.contains(STORE)) {
-        d.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
-      }
-    };
-    req.onsuccess = e => { db = e.target.result; resolve(db); };
-    req.onerror = e => reject(e.target.error);
-  });
-}
-function addPhoto(dataUrl) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).add({ dataUrl, ts: Date.now() });
-    tx.oncomplete = () => res();
-    tx.onerror = e => rej(e.target.error);
-  });
-}
-function getAllPhotos() {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, 'readonly');
-    const req = tx.objectStore(STORE).getAll();
-    req.onsuccess = () => res(req.result);
-    req.onerror = e => rej(e.target.error);
-  });
-}
-function clearAllPhotos() {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).clear();
-    tx.oncomplete = () => res();
-    tx.onerror = e => rej(e.target.error);
-  });
-}
-async function renderGallery() {
-  const photos = (await getAllPhotos()).sort((a,b) => b.ts - a.ts);
-  galleryCount.textContent = photos.length ? `(${photos.length})` : '';
-  galleryGrid.innerHTML = '';
-  if (!photos.length) {
-    galleryGrid.innerHTML = '<div class="gallery-empty">no photos yet</div>';
-    return;
-  }
-  for (const p of photos) {
-    const img = document.createElement('img');
-    img.src = p.dataUrl;
-    img.className = 'gallery-thumb';
-    img.addEventListener('click', () => {
-      // open in preview for long-press save
-      currentPreviewDataUrl = p.dataUrl;
-      originalPreviewDataUrl = p.dataUrl;
-      previewImage.src = p.dataUrl;
-      previewSection.style.display = 'block';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-    galleryGrid.appendChild(img);
+let thumbUrls=[];
+async function renderGallery(){
+  thumbUrls.forEach(u=>URL.revokeObjectURL(u));thumbUrls=[];
+  const items=(await dbAll()).sort((a,b)=>b.ts-a.ts);
+  galleryCount.textContent=items.length?`(${items.length})`:'';
+  galleryGrid.innerHTML='';
+  if(!items.length){galleryGrid.innerHTML='<div class="g-empty">no photos yet</div>';return}
+  for(const it of items){
+    const url=URL.createObjectURL(it.blob);thumbUrls.push(url);
+    const cell=document.createElement('div');cell.className='g-cell';
+    if(it.type==='photo'){
+      const img=document.createElement('img');img.src=url;img.className='g-thumb';
+      img.addEventListener('click',()=>openModalPhoto(it.blob));
+      cell.appendChild(img);
+    }else{
+      const v=document.createElement('video');v.src=url;v.className='g-thumb';v.muted=true;v.preload='metadata';
+      v.addEventListener('loadeddata',()=>{v.currentTime=Math.min(0.1,v.duration||0.1)});
+      const wrap=document.createElement('div');wrap.className='g-thumb-vid';wrap.style.position='relative';
+      wrap.appendChild(v);
+      wrap.addEventListener('click',()=>openModalVideo(it.blob));
+      cell.appendChild(wrap);
+    }
+    const del=document.createElement('button');del.className='g-del';del.textContent='✕';
+    del.addEventListener('click',async e=>{e.stopPropagation();await dbDel(it.id);renderGallery()});
+    cell.appendChild(del);
+    galleryGrid.appendChild(cell);
   }
 }
 
-/* ---------- PRESETS PIPELINE ---------- */
-const PRESET_DEFS = [
-  { key:'intensity',      label:'Intensity',      min:0,   max:100, step:1,    def:100 },
-  { key:'exposure',       label:'Exposure',       min:-100,max:100, step:1,    def:0   },
-  { key:'contrast',       label:'Contrast',       min:-100,max:100, step:1,    def:0   },
-  { key:'saturation',     label:'Saturation',     min:-100,max:100, step:1,    def:0   },
-  { key:'warmth',         label:'Warmth',         min:-100,max:100, step:1,    def:0   },
-  { key:'gamma',          label:'Gamma',          min:-100,max:100, step:1,    def:0   },
-  { key:'wbGreenRed',     label:'WB Green↔Red',   min:-100,max:100, step:1,    def:0   },
-  { key:'wbBlueYellow',   label:'WB Blue↔Yellow', min:-100,max:100, step:1,    def:0   },
-  { key:'highlightTone',  label:'Highlight Tone', min:-100,max:100, step:1,    def:0   },
-  { key:'shadowTone',     label:'Shadow Tone',    min:-100,max:100, step:1,    def:0   },
-  { key:'sharpness',      label:'Sharpness',      min:0,   max:100, step:1,    def:0   },
-  { key:'clarity',        label:'Clarity',        min:0,   max:100, step:1,    def:0   },
-  { key:'halation',       label:'Halation',       min:0,   max:100, step:1,    def:0   },
-  { key:'grain',          label:'Grain',          min:0,   max:100, step:1,    def:0   },
+/* ================= SETTINGS ================= */
+settingsBtn.addEventListener('click',()=>{
+  const open=settingsPanel.style.display==='block';
+  settingsPanel.style.display=open?'none':'block';
+  if(!open){apiKeyInput.value=localStorage.getItem('openai_key')||'';aiModelSelect.value=localStorage.getItem('ai_model')||'gpt-image-1'}
+});
+saveSettingsBtn.addEventListener('click',()=>{
+  localStorage.setItem('openai_key',apiKeyInput.value.trim());
+  localStorage.setItem('ai_model',aiModelSelect.value);
+  settingsPanel.style.display='none';
+});
+clearGalleryBtn.addEventListener('click',async()=>{if(confirm('wipe the whole gallery?')){await dbClear();renderGallery()}});
+
+/* ================= CAMERA CORE ================= */
+function stopMediaTracks(s){if(s)s.getTracks().forEach(t=>t.stop())}
+
+function videoConstraintsFor(opts){
+  const base={width:{ideal:999999},height:{ideal:999999},facingMode:'environment'};
+  if(opts&&opts.fps)base.frameRate={ideal:opts.fps,max:opts.fps};
+  if(opts&&opts.w)base.width={ideal:opts.w};
+  if(opts&&opts.h)base.height={ideal:opts.h};
+  return base;
+}
+
+function startCamera(deviceId=null,vidOpts=null){
+  stopMediaTracks(currentStream);
+  const constraints={audio:mode==='video',video:{...(deviceId?{deviceId:{exact:deviceId}}:videoConstraintsFor(vidOpts))}};
+  if(deviceId)constraints.video.width={ideal:999999};
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(stream=>{
+      currentStream=stream;video.srcObject=stream;
+      videoTrack=stream.getVideoTracks()[0];
+      setTimeout(()=>{setupAdvancedControls(videoTrack);buildVideoOptions()},600);
+    })
+    .catch(err=>{console.error('Camera error',err);alert('Camera failed: '+err.message)});
+}
+
+/* ================= ADVANCED CONTROLS + SILENT FALLBACKS ================= */
+function setRowDisabled(label,rowEls,disabled,text){
+  rowEls.forEach(el=>{if(el)el.style.display=disabled?'none':''});
+}
+function markDisabled(row,label){
+  // replace select+slider with "Disabled" tag
+  const sel=row.querySelector('select'),sl=row.querySelector('input[type=range]');
+  let tag=row.querySelector('.disabled-tag');
+  if(sel)sel.style.display='none';
+  if(sl)sl.style.display='none';
+  if(!tag){
+    tag=document.createElement('span');tag.className='disabled-tag';tag.textContent='Disabled';
+    row.appendChild(tag);
+  }
+  tag.style.display='';
+}
+function markEnabled(row){
+  const sel=row.querySelector('select'),sl=row.querySelector('input[type=range]');
+  const tag=row.querySelector('.disabled-tag');
+  if(tag)tag.style.display='none';
+  if(sel)sel.style.display='';
+  if(sl)sl.style.display='';
+}
+const advRows=()=>[...advPanel.querySelectorAll('label')].map(l=>{
+  // each label is followed by select + slider in the grid; wrap logically
+  return l.parentElement;
+});
+
+function setupAdvancedControls(track){
+  const caps=typeof track.getCapabilities==='function'?track.getCapabilities():{};
+  const sets=typeof track.getSettings==='function'?track.getSettings():{};
+
+  /* torch */
+  if(caps.torch){torchBtn.disabled=false}else{torchBtn.disabled=true;isTorchOn=false;updateTorchUI()}
+
+  /* OIS — enable if hardware exposes it (iOS keeps it on automatically; this is best-effort) */
+  hw.ois=!!(caps.imageStabilization||caps.opticalImageStabilization);
+  if(hw.ois){
+    try{track.applyConstraints({advanced:[{imageStabilization:true}]})}catch(e){}
+  }
+
+  /* FOCUS — no simulation. Disabled means Disabled, said out loud. */
+  const focusRow=focusMode.closest('.advanced-controls');
+  if(caps.focusMode&&caps.focusMode.includes('manual')&&caps.focusDistance){
+    hw.focus=true;focusMode.disabled=false;
+    focusSlider.disabled=false;
+    focusSlider.min=caps.focusDistance.min;focusSlider.max=caps.focusDistance.max;
+    focusSlider.step=caps.focusDistance.step||0.01;
+    focusSlider.value=sets.focusDistance||caps.focusDistance.min;
+    focusMode.parentElement&&markEnabled(focusMode.parentElement);
+    showFocusEnabled();
+  }else{
+    hw.focus=false;focusMode.disabled=true;focusSlider.disabled=true;
+    showFocusDisabled();
+  }
+
+  /* EXPOSURE (compensation) — simulate with brightness if absent */
+  if(caps.exposureCompensation){
+    hw.exposure=true;
+    exposureMode.disabled=false;exposureMode.innerHTML='<option value="continuous">auto</option><option value="manual">manual</option>';
+    exposureSlider.min=caps.exposureCompensation.min;exposureSlider.max=caps.exposureCompensation.max;
+    exposureSlider.step=caps.exposureCompensation.step||0.1;
+    exposureSlider.value=sets.exposureCompensation||0;
+    showRowEnabled(exposureMode);
+  }else{
+    hw.exposure=false;
+    exposureMode.disabled=true;exposureMode.innerHTML='<option>simulated</option>';
+    exposureSlider.min=-100;exposureSlider.max=100;exposureSlider.step=1;exposureSlider.value=0;
+    exposureSlider.disabled=false; // silently live — controls brightness
+    showRowSim(exposureMode);
+  }
+
+  /* SHUTTER — simulate with brightness if absent */
+  if(caps.exposureTime&&caps.exposureMode&&caps.exposureMode.includes('manual')){
+    hw.shutter=true;
+    shutterMode.disabled=false;shutterMode.innerHTML='<option value="continuous">auto</option><option value="manual">manual</option>';
+    shutterSlider.min=caps.exposureTime.min;shutterSlider.max=caps.exposureTime.max;
+    shutterSlider.step=caps.exposureTime.step||1;
+    shutterSlider.value=sets.exposureTime||caps.exposureTime.min;
+    showRowEnabled(shutterMode);
+  }else{
+    hw.shutter=false;
+    shutterMode.disabled=true;shutterMode.innerHTML='<option>simulated</option>';
+    shutterSlider.min=-100;shutterSlider.max=100;shutterSlider.step=1;shutterSlider.value=0;
+    shutterSlider.disabled=false;
+    showRowSim(shutterMode);
+  }
+
+  /* ISO — default 160, simulate with brightness if absent */
+  if(caps.iso){
+    hw.iso=true;
+    isoMode.disabled=false;isoMode.innerHTML='<option value="auto">auto</option><option value="manual">manual</option>';
+    isoSlider.min=caps.iso.min;isoSlider.max=caps.iso.max;isoSlider.step=caps.iso.step||1;
+    isoSlider.value=Math.max(caps.iso.min,Math.min(sets.iso||160,caps.iso.max));
+    showRowEnabled(isoMode);
+  }else{
+    hw.iso=false;
+    isoMode.disabled=true;isoMode.innerHTML='<option>simulated</option>';
+    isoSlider.min=50;isoSlider.max=3200;isoSlider.step=10;isoSlider.value=160;
+    isoSlider.disabled=false;
+    showRowSim(isoMode);
+  }
+  recalcSoftwareBrightness();
+}
+function showFocusDisabled(){
+  focusMode.style.display='none';focusSlider.style.display='none';
+  let tag=$('focus-disabled-tag');
+  if(!tag){tag=document.createElement('span');tag.id='focus-disabled-tag';tag.className='disabled-tag';tag.textContent='Disabled';focusSlider.after(tag)}
+  tag.style.display='';
+}
+function showFocusEnabled(){
+  focusMode.style.display='';focusSlider.style.display='';
+  const tag=$('focus-disabled-tag');if(tag)tag.style.display='none';
+}
+function showRowEnabled(sel){
+  sel.style.display='';sel.nextElementSibling&&sel.nextElementSibling.style&&(sel.parentElement.querySelector('.disabled-tag')||{}).style&&(sel.parentElement.querySelector('.disabled-tag')||{style:{}}).style.display='none';
+  const tag=sel.parentElement.querySelector('.disabled-tag');if(tag)tag.style.display='none';
+  sel.nextElementSibling.style.display='';
+}
+function showRowSim(sel){
+  sel.style.display='none';
+  const tag=sel.parentElement.querySelector('.disabled-tag');if(tag)tag.style.display='none';
+  sel.nextElementSibling.style.display='';
+  sel.nextElementSibling.disabled=false;
+}
+
+function recalcSoftwareBrightness(){
+  let b=1;
+  if(!hw.iso)b*=(parseFloat(isoSlider.value)||160)/160;
+  if(!hw.exposure)b*=Math.pow(2,(parseFloat(exposureSlider.value)||0)/100);
+  if(!hw.shutter)b*=Math.pow(2,(parseFloat(shutterSlider.value)||0)/100);
+  softwareBrightness=b;
+}
+
+async function applyCameraSettings(){
+  if(!videoTrack)return;
+  const adv={};
+  if(!torchBtn.disabled)adv.torch=isTorchOn;
+  if(hw.focus){adv.focusMode=focusMode.value;if(focusMode.value==='manual')adv.focusDistance=parseFloat(focusSlider.value)}
+  if(hw.exposure&&exposureMode.value==='manual')adv.exposureCompensation=parseFloat(exposureSlider.value);
+  if(hw.shutter){adv.exposureMode=shutterMode.value;if(shutterMode.value==='manual')adv.exposureTime=parseFloat(shutterSlider.value)}
+  if(hw.iso&&isoMode.value==='manual')adv.iso=parseFloat(isoSlider.value);
+  if(Object.keys(adv).length&&typeof videoTrack.applyConstraints==='function'){
+    try{await videoTrack.applyConstraints({advanced:[adv]})}catch(e){console.warn('Safari constraint rejection (normal)',e)}
+  }
+  recalcSoftwareBrightness();
+}
+function updateTorchUI(){torchBtn.innerText=`torch: ${isTorchOn?'ON':'OFF'}`;torchBtn.classList.toggle('active',isTorchOn)}
+torchBtn.addEventListener('click',()=>{isTorchOn=!isTorchOn;updateTorchUI();applyCameraSettings()});
+[focusMode,exposureMode,shutterMode,isoMode].forEach(el=>el.addEventListener('change',applyCameraSettings));
+[focusSlider,exposureSlider,shutterSlider,isoSlider].forEach(el=>el.addEventListener('input',()=>{recalcSoftwareBrightness();applyCameraSettings()}));
+
+/* ================= VIDEO OPTIONS ================= */
+function buildVideoOptions(){
+  if(!videoTrack)return;
+  const caps=typeof videoTrack.getCapabilities==='function'?videoTrack.getCapabilities():{};
+  const maxW=(caps.width&&caps.width.max)||1920;
+  const maxH=(caps.height&&caps.height.max)||1080;
+  const maxFPS=(caps.frameRate&&caps.frameRate.max)||30;
+  videoOpts.innerHTML='';
+  const add=(label,val)=>{const o=document.createElement('option');o.value=val;o.textContent=label;videoOpts.appendChild(o)};
+  add('Open Gate HD 30fps','og30');
+  if(maxFPS>=60)add('HD 60fps','hd60');
+  if(maxFPS>=120)add('HD 120fps · slow-mo','hd120');
+  if(maxFPS>=240)add('HD 240fps · slow-mo','hd240');
+  if(maxW>=3840)add('4K 30fps','4k30');
+  if(maxW>=3840&&maxFPS>=60)add('4K 60fps','4k60');
+}
+videoOpts.addEventListener('change',()=>{
+  const v=videoOpts.value;
+  const map={og30:{fps:30},hd60:{fps:60},hd120:{fps:120},hd240:{fps:240},'4k30':{fps:30,w:3840,h:2160},'4k60':{fps:60,w:3840,h:2160}};
+  const curSel=cameraSelect.value||null;
+  startCamera(curSel,map[v]||{fps:30});
+});
+
+/* ================= MODE TOGGLE ================= */
+modePhoto.addEventListener('click',()=>setMode('photo'));
+modeVideo.addEventListener('click',()=>setMode('video'));
+function setMode(m){
+  if(isRecording)stopRecording();
+  mode=m;
+  modePhoto.classList.toggle('active',m==='photo');
+  modeVideo.classList.toggle('active',m==='video');
+  videoOptsRow.style.display=m==='video'?'flex':'none';
+  captureBtn.textContent=m==='photo'?'capture':'● record';
+  captureBtn.classList.remove('recording');
+  recTimer.style.display='none';
+  startCamera(cameraSelect.value||null,m==='video'?{fps:30}:null);
+}
+
+/* ================= PHOTO CAPTURE ================= */
+captureBtn.addEventListener('click',()=>{
+  if(mode==='photo')capturePhoto();
+  else isRecording?stopRecording():startRecording();
+});
+
+function capturePhoto(){
+  if(!currentStream||!video.videoWidth)return;
+  const vw=video.videoWidth,vh=video.videoHeight;
+  // stabilization crop applies to photos too (tiny, consistent framing)
+  const ow=Math.round(vw*CROP),oh=Math.round(vh*CROP);
+  const mx=(vw-ow)/2,my=(vh-oh)/2;
+  canvas.width=ow;canvas.height=oh;
+  const ctx=canvas.getContext('2d');
+  if(softwareBrightness!==1)ctx.filter=`brightness(${softwareBrightness})`;
+  ctx.drawImage(video,mx,my,ow,oh,0,0,ow,oh);
+  ctx.filter='none';
+  baseImageData=ctx.getImageData(0,0,ow,oh);
+  canvas.toBlob(blob=>{
+    if(modalBlobUrl)URL.revokeObjectURL(modalBlobUrl);
+    modalBlob=blob;modalBlobUrl=URL.createObjectURL(blob);
+    originalBlobUrl=modalBlobUrl;
+    modalType='photo';
+    modalImage.src=modalBlobUrl;modalImage.style.display='block';
+    modalVideo.style.display='none';
+    modalHint.style.display='';
+    icAI.style.display='';icPresets.style.display='';
+    modalOverlay.classList.add('open');
+    resetPresetsUI();closeSheet();
+  },'image/png');
+}
+
+/* ================= VIDEO RECORDING + STABILIZATION ================= */
+function getBestMime(){
+  const c=['video/mp4;codecs=avc1.640028','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+  for(const m of c)if(window.MediaRecorder&&MediaRecorder.isTypeSupported(m))return m;
+  return '';
+}
+
+function startRecording(){
+  if(!currentStream||!video.videoWidth)return;
+  const vw=video.videoWidth,vh=video.videoHeight;
+  const ow=Math.round(vw*CROP),oh=Math.round(vh*CROP);
+  recCanvas.width=ow;recCanvas.height=oh;
+  const rctx=recCanvas.getContext('2d');
+
+  // gyro permission (iOS 13+)
+  gyroBaseline=null;gyroTarget={x:0,y:0};gyroSmooth={x:0,y:0};
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+    DeviceOrientationEvent.requestPermission().then(s=>{
+      if(s==='granted'){window.addEventListener('deviceorientation',onGyro);gyroEnabled=true}
+    }).catch(()=>{});
+  }else if(window.DeviceOrientationEvent){
+    window.addEventListener('deviceorientation',onGyro);gyroEnabled=true;
+  }
+
+  const stream=recCanvas.captureStream(30);
+  if(currentStream){currentStream.getAudioTracks().forEach(t=>stream.addTrack(t))}
+  const mime=getBestMime();
+  try{
+    mediaRecorder=new MediaRecorder(stream,mime?{mimeType:mime,videoBitsPerSecond:14000000}:{videoBitsPerSecond:14000000});
+  }catch(e){
+    mediaRecorder=new MediaRecorder(stream);
+  }
+  recordedChunks=[];
+  mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size)recordedChunks.push(e.data)};
+  mediaRecorder.onstop=onRecordingStop;
+  mediaRecorder.start(200);
+  isRecording=true;
+  captureBtn.classList.add('recording');captureBtn.textContent='■ stop';
+  recStartTime=Date.now();recTimer.style.display='block';
+  recTimerInt=setInterval(()=>{
+    const s=Math.floor((Date.now()-recStartTime)/1000);
+    recTimer.textContent=`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  },250);
+  renderStabilizedFrame(rctx,vw,vh,ow,oh);
+}
+
+function onGyro(e){
+  if(e.beta==null&&e.gamma==null)return;
+  if(!gyroBaseline)gyroBaseline={beta:e.beta||0,gamma:e.gamma||0};
+  const dBeta=(e.beta||0)-gyroBaseline.beta;
+  const dGamma=(e.gamma||0)-gyroBaseline.gamma;
+  const marginPx=(recCanvas.width*(1/CROP-1))/2;
+  const pxPerDeg=marginPx/3.5; // ~3.5° max correction
+  gyroTarget.x=Math.max(-marginPx,Math.min(marginPx,dGamma*pxPerDeg));
+  gyroTarget.y=Math.max(-marginPx,Math.min(marginPx,(dBeta-0)*pxPerDeg*0.7));
+}
+
+function renderStabilizedFrame(rctx,vw,vh,ow,oh){
+  if(!isRecording)return;
+  gyroSmooth.x+=(gyroTarget.x-gyroSmooth.x)*0.12;
+  gyroSmooth.y+=(gyroTarget.y-gyroSmooth.y)*0.12;
+  const mx=(vw-ow)/2,my=(vh-oh)/2;
+  let sx=mx-gyroSmooth.x,sy=my-gyroSmooth.y;
+  sx=Math.max(0,Math.min(vw-ow,sx));
+  sy=Math.max(0,Math.min(vh-oh,sy));
+  if(softwareBrightness!==1)rctx.filter=`brightness(${softwareBrightness})`;
+  rctx.drawImage(video,sx,sy,ow,oh,0,0,ow,oh);
+  rctx.filter='none';
+  requestAnimationFrame(()=>renderStabilizedFrame(rctx,vw,vh,ow,oh));
+}
+
+function stopRecording(){
+  if(!mediaRecorder||mediaRecorder.state==='inactive')return;
+  isRecording=false;
+  mediaRecorder.stop();
+  clearInterval(recTimerInt);recTimer.style.display='none';
+  captureBtn.classList.remove('recording');captureBtn.textContent='● record';
+  window.removeEventListener('deviceorientation',onGyro);gyroEnabled=false;
+}
+
+function onRecordingStop(){
+  const type=mediaRecorder.mimeType||'video/mp4';
+  const blob=new Blob(recordedChunks,{type});
+  recordedChunks=[];
+  if(modalBlobUrl)URL.revokeObjectURL(modalBlobUrl);
+  modalBlob=blob;modalBlobUrl=URL.createObjectURL(blob);
+  modalType='video';
+  modalVideo.src=modalBlobUrl;modalVideo.style.display='block';
+  modalImage.style.display='none';
+  modalHint.textContent='tap save ↓ then share/export';
+  icAI.style.display='none';icPresets.style.display='none';
+  modalOverlay.classList.add('open');
+  closeSheet();
+  modalVideo.play().catch(()=>{});
+}
+
+/* ================= MODAL ================= */
+function openModalPhoto(blob){
+  if(modalBlobUrl)URL.revokeObjectURL(modalBlobUrl);
+  modalBlob=blob;modalBlobUrl=URL.createObjectURL(blob);originalBlobUrl=modalBlobUrl;
+  modalType='photo';
+  // rebuild baseImageData for presets
+  const img=new Image();
+  img.onload=()=>{
+    canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+    const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);
+    baseImageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+  };
+  img.src=modalBlobUrl;
+  modalImage.src=modalBlobUrl;modalImage.style.display='block';
+  modalVideo.style.display='none';modalVideo.pause();
+  modalHint.textContent='hold the photo → "Add to Photos"';modalHint.style.display='';
+  icAI.style.display='';icPresets.style.display='';
+  modalOverlay.classList.add('open');
+  resetPresetsUI();closeSheet();
+}
+function openModalVideo(blob){
+  if(modalBlobUrl)URL.revokeObjectURL(modalBlobUrl);
+  modalBlob=blob;modalBlobUrl=URL.createObjectURL(blob);
+  modalType='video';
+  modalVideo.src=modalBlobUrl;modalVideo.style.display='block';
+  modalImage.style.display='none';
+  modalHint.textContent='tap save ↓ then share/export';
+  icAI.style.display='none';icPresets.style.display='none';
+  modalOverlay.classList.add('open');
+  closeSheet();
+}
+icExit.addEventListener('click',()=>{
+  modalOverlay.classList.remove('open');closeSheet();
+  modalVideo.pause();
+});
+modalOverlay.addEventListener('click',e=>{if(e.target===modalOverlay){modalOverlay.classList.remove('open');closeSheet();modalVideo.pause()}});
+
+icSave.addEventListener('click',async()=>{
+  if(!modalBlob)return;
+  if(modalType==='photo'){
+    await dbAdd({type:'photo',blob:modalBlob,ts:Date.now()});
+    icSave.classList.add('done');setTimeout(()=>icSave.classList.remove('done'),1200);
+    renderGallery();
+  }else{
+    // iOS: open blob in new tab so native player offers Share → Save Video
+    const ua=navigator.userAgent;
+    if(/iPhone|iPad|iPod/.test(ua)){
+      const w=window.open();
+      if(w){w.document.write(`<video src="${modalBlobUrl}" controls playsinline style="width:100%"></video><p style="font-family:Georgia;color:#333">tap share → Save Video</p>`);w.document.title='video'}
+      else alert('allow popups to save video on iOS');
+    }else{
+      const a=document.createElement('a');a.href=modalBlobUrl;a.download=`VID_${Date.now()}.mp4`;a.click();
+    }
+    await dbAdd({type:'video',blob:modalBlob,ts:Date.now()});
+    icSave.classList.add('done');setTimeout(()=>icSave.classList.remove('done'),1200);
+    renderGallery();
+  }
+});
+
+/* ================= SHEET ================= */
+function openSheet(pane){
+  paneAI.style.display=pane==='ai'?'block':'none';
+  panePresets.style.display=pane==='presets'?'block':'none';
+  sheet.classList.add('open');
+}
+function closeSheet(){sheet.classList.remove('open')}
+sheet.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeSheet));
+icAI.addEventListener('click',()=>{sheet.classList.contains('open')&&paneAI.style.display==='block'?closeSheet():openSheet('ai')});
+icPresets.addEventListener('click',()=>{sheet.classList.contains('open')&&panePresets.style.display==='block'?closeSheet():openSheet('presets')});
+
+/* ================= PRESETS ================= */
+const PRESET_DEFS=[
+  {key:'intensity',label:'Intensity',min:0,max:100,step:0.5,def:100},
+  {key:'exposure',label:'Exposure',min:-100,max:100,step:0.5,def:0},
+  {key:'contrast',label:'Contrast',min:-100,max:100,step:0.5,def:0},
+  {key:'saturation',label:'Saturation',min:-100,max:100,step:0.5,def:0},
+  {key:'warmth',label:'Warmth',min:-100,max:100,step:0.5,def:0},
+  {key:'gamma',label:'Gamma',min:-100,max:100,step:0.5,def:0},
+  {key:'wbGreenRed',label:'WB Green↔Red',min:-100,max:100,step:0.5,def:0},
+  {key:'wbBlueYellow',label:'WB Blue↔Yellow',min:-100,max:100,step:0.5,def:0},
+  {key:'highlightTone',label:'Highlight Tone',min:-100,max:100,step:0.5,def:0},
+  {key:'shadowTone',label:'Shadow Tone',min:-100,max:100,step:0.5,def:0},
+  {key:'sharpness',label:'Sharpness',min:0,max:100,step:0.5,def:0},
+  {key:'clarity',label:'Clarity',min:0,max:100,step:0.5,def:0},
+  {key:'halation',label:'Halation',min:0,max:100,step:0.5,def:0},
+  {key:'grain',label:'Grain',min:0,max:100,step:0.5,def:0},
 ];
-const presetSliders = {};
+const BUILTIN_PRESETS=[
+  {name:'Original',builtin:true,values:{intensity:100,exposure:0,contrast:0,saturation:0,warmth:0,gamma:0,wbGreenRed:0,wbBlueYellow:0,highlightTone:0,shadowTone:0,sharpness:0,clarity:0,halation:0,grain:0}},
+  {name:'Natural',builtin:true,values:{intensity:100,exposure:4.0,contrast:-4.0,saturation:-3.0,warmth:-6.5,gamma:0.5,wbGreenRed:-1.5,wbBlueYellow:4.5,highlightTone:-2.0,shadowTone:-0.5,sharpness:4.0,clarity:4.0,halation:0.0,grain:0}},
+];
+function customPresets(){try{return JSON.parse(localStorage.getItem('custom_presets')||'[]')}catch(e){return[]}}
+function saveCustomPresets(p){localStorage.setItem('custom_presets',JSON.stringify(p))}
+const presetSliders={};
 
-function buildPresetRows() {
-  presetRows.innerHTML = '';
-  let currentTitle = null;
-  const postKeys = new Set(['sharpness','clarity','halation','grain']);
-  for (const def of PRESET_DEFS) {
-    if (def.key === 'sharpness' && currentTitle !== 'post') {
-      const t = document.createElement('div');
-      t.className = 'preset-section-title';
-      t.textContent = 'post processing';
-      presetRows.appendChild(t);
-      currentTitle = 'post';
+function buildPresetRows(){
+  presetRows.innerHTML='';
+  let posted=false;
+  for(const def of PRESET_DEFS){
+    if(def.key==='sharpness'&&!posted){
+      const t=document.createElement('div');t.className='sec-title';t.textContent='post processing';presetRows.appendChild(t);posted=true;
     }
-    const row = document.createElement('div');
-    row.className = 'preset-row';
-    const lbl = document.createElement('label');
-    lbl.textContent = def.label;
-    const slider = document.createElement('input');
-    slider.type = 'range';
-    slider.min = def.min; slider.max = def.max;
-    slider.step = def.step; slider.value = def.def;
-    const val = document.createElement('span');
-    val.textContent = def.def;
-    slider.addEventListener('input', () => { val.textContent = slider.value; });
-    row.appendChild(lbl); row.appendChild(slider); row.appendChild(val);
+    const row=document.createElement('div');row.className='preset-row';
+    const lbl=document.createElement('label');lbl.textContent=def.label;
+    const sl=document.createElement('input');sl.type='range';sl.min=def.min;sl.max=def.max;sl.step=def.step;sl.value=def.def;
+    const val=document.createElement('span');val.textContent=fmtVal(def.def);
+    sl.addEventListener('input',()=>{val.textContent=fmtVal(sl.value)});
+    row.appendChild(lbl);row.appendChild(sl);row.appendChild(val);
     presetRows.appendChild(row);
-    presetSliders[def.key] = slider;
+    presetSliders[def.key]=sl;
   }
 }
-function getPresetValues() {
-  const v = {};
-  for (const k in presetSliders) v[k] = parseFloat(presetSliders[k].value);
-  return v;
-}
-function resetPresetsUI() {
-  for (const def of PRESET_DEFS) {
-    presetSliders[def.key].value = def.def;
-    presetSliders[def.key].nextElementSibling && (presetSliders[def.key].parentElement.querySelector('span').textContent = def.def);
+function fmtVal(v){v=parseFloat(v);return Number.isInteger(v)?String(v):v.toFixed(1)}
+function refreshPresetSelect(){
+  presetSelect.innerHTML='';
+  const all=[...BUILTIN_PRESETS,...customPresets()];
+  for(const p of all){
+    const o=document.createElement('option');o.value=p.name;o.textContent=p.builtin?p.name:p.name+' ✎';
+    presetSelect.appendChild(o);
   }
-  // fix the span text properly
-  for (const def of PRESET_DEFS) {
-    const sl = presetSliders[def.key];
-    sl.parentElement.querySelector('span').textContent = def.def;
-  }
+  presetDelBtn.disabled=true;
 }
-
-function applyPresets() {
-  if (!baseImageData) return;
-  const src = baseImageData;
-  const out = new ImageData(
-    new Uint8ClampedArray(src.data),
-    src.width, src.height
-  );
-  const v = getPresetValues();
-  const t = v.intensity / 100;
-  const d = out.data;
-
-  // Exposure multiplier
-  const expMul = Math.pow(2, (v.exposure / 100) * t);
-  // Contrast factor
-  const conF = (v.contrast / 100) * t + 1;
-  // Saturation factor
-  const satF = (v.saturation / 100) * t + 1;
-  // Warmth shift
-  const wShift = (v.warmth / 100) * 40 * t;
-  // WB shifts
-  const gr = (v.wbGreenRed / 100) * 30 * t;
-  const by = (v.wbBlueYellow / 100) * 30 * t;
-  // Gamma
-  const gamma = v.gamma === 0 ? 1 : Math.pow(2, -(v.gamma / 100) * t);
-  // Highlight / Shadow
-  const hiF = (v.highlightTone / 100) * t;
-  const shF = (v.shadowTone / 100) * t;
-
-  for (let i = 0; i < d.length; i += 4) {
-    let r = d[i], g = d[i+1], b = d[i+2];
-
-    // Exposure
-    r *= expMul; g *= expMul; b *= expMul;
-
-    // Contrast around 128
-    r = (r - 128) * conF + 128;
-    g = (g - 128) * conF + 128;
-    b = (b - 128) * conF + 128;
-
-    // Warmth
-    r += wShift;
-    b -= wShift;
-
-    // WB green-red
-    g += gr;
-    r -= gr;
-
-    // WB blue-yellow
-    b += by;
-    r -= by * 0.5;
-    g -= by * 0.5;
-
-    // Gamma
-    if (gamma !== 1) {
-      r = Math.pow(Math.max(0, r) / 255, gamma) * 255;
-      g = Math.pow(Math.max(0, g) / 255, gamma) * 255;
-      b = Math.pow(Math.max(0, b) / 255, gamma) * 255;
-    }
-
-    // Saturation
-    const lum = 0.299*r + 0.587*g + 0.114*b;
-    r = lum + (r - lum) * satF;
-    g = lum + (g - lum) * satF;
-    b = lum + (b - lum) * satF;
-
-    // Highlight / Shadow
-    const lum2 = 0.299*r + 0.587*g + 0.114*b;
-    if (lum2 > 180) {
-      const k = 1 + hiF * ((lum2 - 180) / 75);
-      r = (r - 180) * k + 180;
-      g = (g - 180) * k + 180;
-      b = (b - 180) * k + 180;
-    } else if (lum2 < 70) {
-      const k = 1 + shF * ((70 - lum2) / 70);
-      r *= k; g *= k; b *= k;
-    }
-
-    d[i]   = Math.max(0, Math.min(255, r));
-    d[i+1] = Math.max(0, Math.min(255, g));
-    d[i+2] = Math.max(0, Math.min(255, b));
-  }
-
-  // Post-processing passes on out
-  if (v.sharpness > 0) unsharpMask(out, 1, (v.sharpness/100) * t * 1.5);
-  if (v.clarity > 0)   unsharpMask(out, 5, (v.clarity/100) * t * 1.2, true);
-  if (v.halation > 0)  applyHalation(out, (v.halation/100) * t);
-  if (v.grain > 0)     applyGrain(out, (v.grain/100) * t);
-
-  // Put to canvas, export
-  canvas.width = out.width;
-  canvas.height = out.height;
-  canvas.getContext('2d').putImageData(out, 0, 0);
-  const dataUrl = canvas.toDataURL('image/png');
-  previewImage.src = dataUrl;
-  currentPreviewDataUrl = dataUrl;
-}
-
-function unsharpMask(imgData, radius, amount, midtoneOnly=false) {
-  // radius in pixels (1 or 5), amount 0..1.5
-  const w = imgData.width, h = imgData.height;
-  const src = new Uint8ClampedArray(imgData.data);
-  const dst = imgData.data;
-  // simple box blur approximation
-  const blur = boxBlur(src, w, h, radius);
-  for (let i = 0; i < dst.length; i += 4) {
-    const lum = (src[i] + src[i+1] + src[i+2]) / 3;
-    let mask = 1;
-    if (midtoneOnly) {
-      // reduce effect in shadows and highlights
-      const distFromMid = Math.abs(lum - 128) / 128;
-      mask = 1 - distFromMid;
-    }
-    for (let c = 0; c < 3; c++) {
-      const detail = src[i+c] - blur[i+c];
-      let v = src[i+c] + detail * amount * mask;
-      dst[i+c] = Math.max(0, Math.min(255, v));
-    }
+function applyPresetValues(vals){
+  for(const def of PRESET_DEFS){
+    const v=vals&&vals[def.key]!=null?vals[def.key]:def.def;
+    presetSliders[def.key].value=v;
+    presetSliders[def.key].parentElement.querySelector('span').textContent=fmtVal(v);
   }
 }
-function boxBlur(src, w, h, r) {
-  const out = new Uint8ClampedArray(src.length);
-  const tmp = new Uint8ClampedArray(src.length);
-  // horizontal
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let rr=0,gg=0,bb=0,cnt=0;
-      for (let k = -r; k <= r; k++) {
-        const nx = x + k;
-        if (nx < 0 || nx >= w) continue;
-        const idx = (y*w + nx) * 4;
-        rr += src[idx]; gg += src[idx+1]; bb += src[idx+2]; cnt++;
-      }
-      const idx = (y*w + x) * 4;
-      tmp[idx] = rr/cnt; tmp[idx+1] = gg/cnt; tmp[idx+2] = bb/cnt; tmp[idx+3] = src[idx+3];
+function getPresetValues(){const v={};for(const k in presetSliders)v[k]=parseFloat(presetSliders[k].value);return v}
+function resetPresetsUI(){applyPresetValues(BUILTIN_PRESETS[0].values);presetSelect.value='Original'}
+presetSelect.addEventListener('change',()=>{
+  const all=[...BUILTIN_PRESETS,...customPresets()];
+  const p=all.find(x=>x.name===presetSelect.value);
+  if(p)applyPresetValues(p.values);
+  presetDelBtn.disabled=!!(p&&p.builtin);
+});
+presetSaveBtn.addEventListener('click',()=>{
+  const name=prompt('preset name?');
+  if(!name||!name.trim())return;
+  const customs=customPresets();
+  const vals=getPresetValues();
+  const existing=customs.findIndex(p=>p.name===name.trim());
+  if(existing>=0)customs[existing].values=vals;
+  else customs.push({name:name.trim(),values:vals});
+  saveCustomPresets(customs);refreshPresetSelect();presetSelect.value=name.trim();presetDelBtn.disabled=false;
+});
+presetDelBtn.addEventListener('click',()=>{
+  const name=presetSelect.value;
+  let customs=customPresets();
+  customs=customs.filter(p=>p.name!==name);
+  saveCustomPresets(customs);refreshPresetSelect();resetPresetsUI();
+});
+
+/* ================= IMAGE PROCESSING ================= */
+function applyPresets(){
+  if(!baseImageData){aiStatus.textContent='';return}
+  const src=baseImageData;
+  const out=new ImageData(new Uint8ClampedArray(src.data),src.width,src.height);
+  const v=getPresetValues();
+  const t=v.intensity/100;
+  const d=out.data;
+  const expMul=Math.pow(2,(v.exposure/100)*t);
+  const conF=(v.contrast/100)*t+1;
+  const satF=(v.saturation/100)*t+1;
+  const wShift=(v.warmth/100)*40*t;
+  const gr=(v.wbGreenRed/100)*30*t;
+  const by=(v.wbBlueYellow/100)*30*t;
+  const gammaExp=v.gamma===0?1:Math.pow(2,-(v.gamma/100)*t);
+  const hiF=(v.highlightTone/100)*t;
+  const shF=(v.shadowTone/100)*t;
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i],g=d[i+1],b=d[i+2];
+    r*=expMul;g*=expMul;b*=expMul;
+    r=(r-128)*conF+128;g=(g-128)*conF+128;b=(b-128)*conF+128;
+    r+=wShift;b-=wShift;
+    g+=gr;r-=gr;
+    b+=by;r-=by*0.5;g-=by*0.5;
+    if(gammaExp!==1){
+      r=Math.pow(Math.max(0,r)/255,gammaExp)*255;
+      g=Math.pow(Math.max(0,g)/255,gammaExp)*255;
+      b=Math.pow(Math.max(0,b)/255,gammaExp)*255;
     }
+    const lum=0.299*r+0.587*g+0.114*b;
+    r=lum+(r-lum)*satF;g=lum+(g-lum)*satF;b=lum+(b-lum)*satF;
+    const lum2=0.299*r+0.587*g+0.114*b;
+    if(lum2>180){const k=1+hiF*((lum2-180)/75);r=(r-180)*k+180;g=(g-180)*k+180;b=(b-180)*k+180}
+    else if(lum2<70){const k=1+shF*((70-lum2)/70);r*=k;g*=k;b*=k}
+    d[i]=Math.max(0,Math.min(255,r));d[i+1]=Math.max(0,Math.min(255,g));d[i+2]=Math.max(0,Math.min(255,b));
   }
-  // vertical
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let rr=0,gg=0,bb=0,cnt=0;
-      for (let k = -r; k <= r; k++) {
-        const ny = y + k;
-        if (ny < 0 || ny >= h) continue;
-        const idx = (ny*w + x) * 4;
-        rr += tmp[idx]; gg += tmp[idx+1]; bb += tmp[idx+2]; cnt++;
-      }
-      const idx = (y*w + x) * 4;
-      out[idx] = rr/cnt; out[idx+1] = gg/cnt; out[idx+2] = bb/cnt; out[idx+3] = tmp[idx+3];
-    }
+  if(v.sharpness>0)unsharp(out,1,(v.sharpness/100)*t*1.5,false);
+  if(v.clarity>0)unsharp(out,5,(v.clarity/100)*t*1.2,true);
+  if(v.halation>0)halation(out,(v.halation/100)*t);
+  if(v.grain>0)grain(out,(v.grain/100)*t);
+  canvas.width=out.width;canvas.height=out.height;
+  canvas.getContext('2d').putImageData(out,0,0);
+  canvas.toBlob(blob=>{
+    if(modalBlobUrl)URL.revokeObjectURL(modalBlobUrl);
+    modalBlob=blob;modalBlobUrl=URL.createObjectURL(blob);
+    modalImage.src=modalBlobUrl;
+  },'image/png');
+}
+function boxBlur(src,w,h,r){
+  const tmp=new Uint8ClampedArray(src.length),out=new Uint8ClampedArray(src.length);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    let rr=0,gg=0,bb=0,c=0;
+    for(let k=-r;k<=r;k++){const nx=x+k;if(nx<0||nx>=w)continue;const i=(y*w+nx)*4;rr+=src[i];gg+=src[i+1];bb+=src[i+2];c++}
+    const i=(y*w+x)*4;tmp[i]=rr/c;tmp[i+1]=gg/c;tmp[i+2]=bb/c;tmp[i+3]=src[i+3];
+  }
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    let rr=0,gg=0,bb=0,c=0;
+    for(let k=-r;k<=r;k++){const ny=y+k;if(ny<0||ny>=h)continue;const i=(ny*w+x)*4;rr+=tmp[i];gg+=tmp[i+1];bb+=tmp[i+2];c++}
+    const i=(y*w+x)*4;out[i]=rr/c;out[i+1]=gg/c;out[i+2]=bb/c;out[i+3]=tmp[i+3];
   }
   return out;
 }
-function applyHalation(imgData, amount) {
-  // glow around bright pixels: blur highlights and add back
-  const w = imgData.width, h = imgData.height;
-  const src = new Uint8ClampedArray(imgData.data);
-  // isolate highlights
-  const hi = new Uint8ClampedArray(src.length);
-  for (let i = 0; i < src.length; i += 4) {
-    const lum = (src[i] + src[i+1] + src[i+2]) / 3;
-    if (lum > 200) {
-      const k = (lum - 200) / 55;
-      hi[i] = src[i]*k; hi[i+1] = src[i+1]*k; hi[i+2] = src[i+2]*k; hi[i+3] = 255;
-    }
-  }
-  const blur = boxBlur(hi, w, h, 6);
-  const d = imgData.data;
-  for (let i = 0; i < d.length; i += 4) {
-    for (let c = 0; c < 3; c++) {
-      d[i+c] = Math.max(0, Math.min(255, d[i+c] + blur[i+c] * amount * 0.8));
+function unsharp(img,r,amount,midOnly){
+  const w=img.width,h=img.height,src=new Uint8ClampedArray(img.data),d=img.data;
+  const blur=boxBlur(src,w,h,r);
+  for(let i=0;i<d.length;i+=4){
+    const lum=(src[i]+src[i+1]+src[i+2])/3;
+    let mask=1;
+    if(midOnly)mask=1-Math.abs(lum-128)/128;
+    for(let c=0;c<3;c++){
+      const detail=src[i+c]-blur[i+c];
+      d[i+c]=Math.max(0,Math.min(255,src[i+c]+detail*amount*mask));
     }
   }
 }
-function applyGrain(imgData, amount) {
-  const d = imgData.data;
-  const intensity = amount * 50;
-  for (let i = 0; i < d.length; i += 4) {
-    const n = (Math.random() - 0.5) * intensity;
-    d[i]   = Math.max(0, Math.min(255, d[i]   + n));
-    d[i+1] = Math.max(0, Math.min(255, d[i+1] + n));
-    d[i+2] = Math.max(0, Math.min(255, d[i+2] + n));
+function halation(img,amount){
+  const w=img.width,h=img.height,src=new Uint8ClampedArray(img.data);
+  const hi=new Uint8ClampedArray(src.length);
+  for(let i=0;i<src.length;i+=4){
+    const lum=(src[i]+src[i+1]+src[i+2])/3;
+    if(lum>200){const k=(lum-200)/55;hi[i]=src[i]*k;hi[i+1]=src[i+1]*k;hi[i+2]=src[i+2]*k;hi[i+3]=255}
+  }
+  const blur=boxBlur(hi,w,h,6),d=img.data;
+  for(let i=0;i<d.length;i+=4)for(let c=0;c<3;c++)d[i+c]=Math.max(0,Math.min(255,d[i+c]+blur[i+c]*amount*0.8));
+}
+function grain(img,amount){
+  const d=img.data,inten=amount*50;
+  for(let i=0;i<d.length;i+=4){
+    const n=(Math.random()-0.5)*inten;
+    d[i]=Math.max(0,Math.min(255,d[i]+n));
+    d[i+1]=Math.max(0,Math.min(255,d[i+1]+n));
+    d[i+2]=Math.max(0,Math.min(255,d[i+2]+n));
   }
 }
-
-/* ---------- AI MODIFY ---------- */
-async function modifyWithAI() {
-  const apiKey = localStorage.getItem('openai_key');
-  if (!apiKey) {
-    aiStatus.textContent = 'paste your OpenAI API key in ⚙ settings first.';
-    return;
-  }
-  const prompt = aiPrompt.value.trim();
-  if (!prompt) {
-    aiStatus.textContent = 'tell it what to do.';
-    return;
-  }
-  if (!currentPreviewDataUrl) {
-    aiStatus.textContent = 'no image to modify.';
-    return;
-  }
-  aiSubmitBtn.disabled = true;
-  aiStatus.textContent = 'thinking... (can take 5-15s)';
-  try {
-    const blob = await (await fetch(currentPreviewDataUrl)).blob();
-    const form = new FormData();
-    form.append('image', blob, 'photo.png');
-    form.append('prompt', prompt);
-    form.append('model', aiModelSelect.value || 'gpt-image-1');
-    form.append('size', 'auto');
-    form.append('response_format', 'b64_json');
-
-    const resp = await fetch('https://api.openai.com/v1/images/edits', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-      body: form
-    });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error?.message || 'API error');
-    const b64 = data.data?.[0]?.b64_json;
-    if (!b64) throw new Error('no image in response');
-    const newDataUrl = 'data:image/png;base64,' + b64;
-    previewImage.src = newDataUrl;
-    currentPreviewDataUrl = newDataUrl;
-    aiStatus.textContent = 'done. hold image to save.';
-  } catch (err) {
-    console.error(err);
-    aiStatus.textContent = 'error: ' + err.message;
-  } finally {
-    aiSubmitBtn.disabled = false;
-  }
-}
-
-/* ---------- CAMERA CORE (unchanged) ---------- */
-function stopMediaTracks(stream) {
-  if (stream) stream.getTracks().forEach(t => t.stop());
-}
-function startCamera(deviceId = null) {
-  stopMediaTracks(currentStream);
-  const constraints = {
-    audio: false,
-    video: {
-      width: { ideal: 9999999 }, height: { ideal: 9999999 },
-      ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' })
-    }
-  };
-  navigator.mediaDevices.getUserMedia(constraints)
-    .then(stream => {
-      currentStream = stream;
-      video.srcObject = stream;
-      videoTrack = stream.getVideoTracks()[0];
-      setTimeout(() => setupAdvancedControls(videoTrack), 500);
-    })
-    .catch(err => { console.error('Camera error', err); alert('Camera failed'); });
-}
-function setupAdvancedControls(track) {
-  const cap = typeof track.getCapabilities === 'function' ? track.getCapabilities() : {};
-  const set = typeof track.getSettings === 'function' ? track.getSettings() : {};
-  if (cap.torch) torchBtn.disabled = false;
-  else { torchBtn.disabled = true; isTorchOn = false; updateTorchUI(); }
-  if (cap.focusMode && cap.focusMode.includes('manual') && cap.focusDistance) {
-    focusMode.disabled = false;
-    focusSlider.min = cap.focusDistance.min;
-    focusSlider.max = cap.focusDistance.max;
-    focusSlider.step = cap.focusDistance.step || 0.01;
-    focusSlider.value = set.focusDistance || cap.focusDistance.min;
-  } else { focusMode.disabled = true; focusSlider.disabled = true; }
-  if (cap.exposureMode && cap.exposureMode.includes('manual') && cap.exposureTime) {
-    exposureMode.disabled = false;
-    exposureSlider.min = cap.exposureTime.min;
-    exposureSlider.max = cap.exposureTime.max;
-    exposureSlider.step = cap.exposureTime.step || 1;
-    exposureSlider.value = set.exposureTime || cap.exposureTime.min;
-  } else { exposureMode.disabled = true; exposureSlider.disabled = true; }
-  if (cap.iso) {
-    isoMode.disabled = false;
-    isoSlider.min = cap.iso.min; isoSlider.max = cap.iso.max;
-    isoSlider.step = cap.iso.step || 1;
-    isoSlider.value = set.iso || cap.iso.min;
-  } else { isoMode.disabled = true; isoSlider.disabled = true; }
-}
-async function applyCameraSettings() {
-  if (!videoTrack) return;
-  const adv = {};
-  if (!torchBtn.disabled) adv.torch = isTorchOn;
-  if (!focusMode.disabled) {
-    adv.focusMode = focusMode.value;
-    if (focusMode.value === 'manual') adv.focusDistance = parseFloat(focusSlider.value);
-  }
-  if (!exposureMode.disabled) {
-    adv.exposureMode = exposureMode.value;
-    if (exposureMode.value === 'manual') adv.exposureTime = parseFloat(exposureSlider.value);
-  }
-  if (!isoMode.disabled && isoMode.value === 'manual') adv.iso = parseFloat(isoSlider.value);
-  if (Object.keys(adv).length && typeof videoTrack.applyConstraints === 'function') {
-    try { await videoTrack.applyConstraints({ advanced: [adv] }); }
-    catch (e) { console.warn('Error (Normal for Safari)', e); }
-  }
-}
-function updateTorchUI() {
-  torchBtn.innerText = `torch: ${isTorchOn ? 'ON' : 'OFF'}`;
-  torchBtn.classList.toggle('active', isTorchOn);
-}
-torchBtn.addEventListener('click', () => { isTorchOn = !isTorchOn; updateTorchUI(); applyCameraSettings(); });
-[focusMode, exposureMode, isoMode].forEach(el => {
-  el.addEventListener('change', e => {
-    e.target.nextElementSibling.disabled = (e.target.value !== 'manual');
-    applyCameraSettings();
-  });
-});
-[focusSlider, exposureSlider, isoSlider].forEach(el => el.addEventListener('input', applyCameraSettings));
-
-startCamera();
-
-listCamerasBtn.addEventListener('click', async () => {
-  try {
-    const devs = await navigator.mediaDevices.enumerateDevices();
-    const vids = devs.filter(d => d.kind === 'videoinput');
-    cameraSelect.innerHTML = '';
-    vids.forEach((d, i) => {
-      const o = document.createElement('option');
-      o.value = d.deviceId; o.text = d.label || `Camera ${i+1}`;
-      cameraSelect.appendChild(o);
-    });
-    cameraSelect.style.display = 'block';
-    listCamerasBtn.style.display = 'none';
-  } catch (e) { console.error(e); alert('Cameras failed to list'); }
-});
-cameraSelect.addEventListener('change', e => {
-  startCamera(e.target.value);
-  isTorchOn = false; updateTorchUI();
-  [focusMode, exposureMode, isoMode].forEach(el => el.value = el.options[0].value);
-  [focusSlider, exposureSlider, isoSlider].forEach(el => el.disabled = true);
-});
-
-/* ---------- CAPTURE -> PREVIEW ---------- */
-captureBtn.addEventListener('click', () => {
-  if (!currentStream) return;
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const dataUrl = canvas.toDataURL('image/png');
-  previewImage.src = dataUrl;
-  currentPreviewDataUrl = dataUrl;
-  originalPreviewDataUrl = dataUrl;
-
+applyPresetsBtn.addEventListener('click',applyPresets);
+resetPresetsBtn.addEventListener('click',()=>{
   resetPresetsUI();
-  previewSection.style.display = 'block';
-  aiPanel.style.display = 'none';
-  presetsPanel.style.display = 'none';
-  aiStatus.textContent = '';
-  aiPrompt.value = '';
-  window.scrollTo({ top: previewSection.offsetTop - 20, behavior: 'smooth' });
+  if(originalBlobUrl){if(modalBlobUrl&&modalBlobUrl!==originalBlobUrl)URL.revokeObjectURL(modalBlobUrl);modalBlobUrl=originalBlobUrl;modalImage.src=modalBlobUrl}
 });
 
-retakeBtn.addEventListener('click', () => {
-  previewSection.style.display = 'none';
-  currentPreviewDataUrl = null;
-  originalPreviewDataUrl = null;
-  baseImageData = null;
+/* ================= AI ================= */
+aiSubmitBtn.addEventListener('click',async()=>{
+  const apiKey=localStorage.getItem('openai_key');
+  if(!apiKey){aiStatus.textContent='paste your OpenAI key in ⚙ first.';return}
+  const prompt=aiPrompt.value.trim();
+  if(!prompt){aiStatus.textContent='tell it what to change.';return}
+  if(!modalBlob||modalType!=='photo'){aiStatus.textContent='photos only.';return}
+  aiSubmitBtn.disabled=true;aiStatus.textContent='thinking… (5–20s)';
+  try{
+    const form=new FormData();
+    form.append('image',modalBlob,'photo.png');
+    form.append('prompt',prompt);
+    form.append('model',aiModelSelect.value||'gpt-image-1');
+    form.append('size','auto');
+    const resp=await fetch('https://api.openai.com/v1/images/edits',{method:'POST',headers:{'Authorization':`Bearer ${apiKey}`},body:form});
+    const data=await resp.json();
+    if(!resp.ok)throw new Error(data.error?.message||('HTTP '+resp.status));
+    const b64=data.data&&data.data[0]&&data.data[0].b64_json;
+    if(!b64)throw new Error('empty response');
+    const bin=atob(b64);const arr=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+    const blob=new Blob([arr],{type:'image/png'});
+    if(modalBlobUrl)URL.revokeObjectURL(modalBlobUrl);
+    modalBlob=blob;modalBlobUrl=URL.createObjectURL(blob);
+    modalImage.src=modalBlobUrl;
+    // refresh base for presets on the AI result
+    const img=new Image();img.onload=()=>{canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;const c2=canvas.getContext('2d');c2.drawImage(img,0,0);baseImageData=c2.getImageData(0,0,canvas.width,canvas.height)};img.src=modalBlobUrl;
+    aiStatus.textContent='done. hold to save, or keep editing.';
+  }catch(err){
+    console.error(err);aiStatus.textContent='error: '+err.message;
+  }finally{aiSubmitBtn.disabled=false}
 });
 
-/* ---------- TOGGLES ---------- */
-aiToggleBtn.addEventListener('click', () => {
-  aiPanel.style.display = aiPanel.style.display === 'block' ? 'none' : 'block';
-  presetsPanel.style.display = 'none';
+/* ================= CAMERA LIST ================= */
+listCamerasBtn.addEventListener('click',async()=>{
+  try{
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    const vids=devs.filter(d=>d.kind==='videoinput');
+    cameraSelect.innerHTML='';
+    vids.forEach((d,i)=>{const o=document.createElement('option');o.value=d.deviceId;o.text=d.label||`Camera ${i+1}`;cameraSelect.appendChild(o)});
+    cameraSelect.style.display='block';listCamerasBtn.style.display='none';
+  }catch(e){console.error(e);alert('Could not list cameras')}
 });
-presetsToggleBtn.addEventListener('click', () => {
-  presetsPanel.style.display = presetsPanel.style.display === 'block' ? 'none' : 'block';
-  aiPanel.style.display = 'none';
-});
-aiSubmitBtn.addEventListener('click', modifyWithAI);
-applyPresetsBtn.addEventListener('click', applyPresets);
-resetPresetsBtn.addEventListener('click', () => {
-  resetPresetsUI();
-  if (originalPreviewDataUrl) {
-    previewImage.src = originalPreviewDataUrl;
-    currentPreviewDataUrl = originalPreviewDataUrl;
-  }
+cameraSelect.addEventListener('change',e=>{
+  startCamera(e.target.value,mode==='video'?{fps:30}:null);
+  isTorchOn=false;updateTorchUI();
 });
 
-/* ---------- SAVE TO GALLERY ---------- */
-saveGalleryBtn.addEventListener('click', async () => {
-  if (!currentPreviewDataUrl) return;
-  try {
-    await addPhoto(currentPreviewDataUrl);
-    saveGalleryBtn.textContent = 'saved ✓';
-    setTimeout(() => saveGalleryBtn.textContent = 'save to gallery', 1500);
-    renderGallery();
-  } catch (e) {
-    alert('save failed: ' + e.message);
-  }
-});
-
-/* ---------- SETTINGS ---------- */
-settingsBtn.addEventListener('click', () => {
-  settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
-  apiKeyInput.value = localStorage.getItem('openai_key') || '';
-  aiModelSelect.value = localStorage.getItem('ai_model') || 'gpt-image-1';
-});
-saveSettingsBtn.addEventListener('click', () => {
-  localStorage.setItem('openai_key', apiKeyInput.value.trim());
-  localStorage.setItem('ai_model', aiModelSelect.value);
-  settingsPanel.style.display = 'none';
-});
-clearGalleryBtn.addEventListener('click', async () => {
-  if (confirm('wipe the whole gallery?')) {
-    await clearAllPhotos();
-    renderGallery();
-  }
-});
-
-/* ---------- INIT ---------- */
+/* ================= INIT ================= */
 buildPresetRows();
-(async () => {
-  await openDB();
-  renderGallery();
-})();
+refreshPresetSelect();
+(async()=>{await openDB();renderGallery()})();
+startCamera();
 </script>
 </body>
 </html>
