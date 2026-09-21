@@ -405,9 +405,10 @@ function showFocusEnabled(){
 }
 function showRowEnabled(sel){
   sel.style.display='';
-  const tag=sel.nextElementSibling&&sel.nextElementSibling.style&&(sel.parentElement.querySelector('.disabled-tag')||{}).style&&(sel.parentElement.querySelector('.disabled-tag')||{style:{}}).style.display='none';
-  const tag=sel.parentElement.querySelector('.disabled-tag');if(tag)tag.style.display='none';
-  sel.nextElementSibling.style.display='';
+  var tag=sel.parentElement.querySelector('.disabled-tag');
+  if(tag)tag.style.display='none';
+  var sib=sel.nextElementSibling;
+  if(sib)sib.style.display='';
 }
 function showRowSim(sel){
   sel.style.display='none';
